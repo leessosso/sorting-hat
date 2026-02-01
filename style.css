@@ -579,14 +579,6 @@ body::before {
     text-align: center;
 }
 
-.leader-trait {
-    font-size: 0.8rem;
-    color: var(--color-gold);
-    text-align: center;
-    opacity: 0.8;
-    margin-top: 2px;
-}
-
 .selected-count {
     text-align: center;
     font-size: 1.1rem;
