@@ -574,7 +574,6 @@ function initAdminApp() {
                 const emblem = team.emblem || '⭐';
                 const emblemImage = team.emblemImage || '';
                 const color = team.color || 'var(--color-gold)';
-                const trait = team.trait || '';
                 
                 const emblemDisplay = emblemImage ? 
                     `<img src="${emblemImage}" alt="Emblem" style="width: 40px; height: 40px; object-fit: contain; margin-right: 8px;">` :
@@ -585,8 +584,7 @@ function initAdminApp() {
                         <div class="team-detail-header">
                             <div class="team-detail-name" style="color: ${color}; display: flex; align-items: center;">
                                 ${emblemDisplay}
-                                <span>${team.name} (조장: ${team.leader})
-                                ${trait ? ` <span style="font-size: 0.85rem; opacity: 0.8; margin-left: 5px;">"${trait}"</span>` : ''}</span>
+                                <span>${team.name} (조장: ${team.leader})</span>
                             </div>
                             <div class="team-detail-count">${team.count || 0}명</div>
                         </div>
