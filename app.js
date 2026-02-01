@@ -66,30 +66,30 @@ function getRandomElement(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
 
-// LocalStorage 관리
-function saveToLocalStorage(key, value) {
+// SessionStorage 관리 (브라우저 세션 동안만 유지, 닫으면 자동 삭제)
+function saveToSessionStorage(key, value) {
     try {
-        localStorage.setItem(key, JSON.stringify(value));
+        sessionStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-        console.error('LocalStorage save error:', error);
+        console.error('SessionStorage save error:', error);
     }
 }
 
-function getFromLocalStorage(key) {
+function getFromSessionStorage(key) {
     try {
-        const value = localStorage.getItem(key);
+        const value = sessionStorage.getItem(key);
         return value ? JSON.parse(value) : null;
     } catch (error) {
-        console.error('LocalStorage get error:', error);
+        console.error('SessionStorage get error:', error);
         return null;
     }
 }
 
-function clearFromLocalStorage(key) {
+function clearFromSessionStorage(key) {
     try {
-        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
     } catch (error) {
-        console.error('LocalStorage clear error:', error);
+        console.error('SessionStorage clear error:', error);
     }
 }
 
@@ -128,6 +128,24 @@ async function assignToTeam(userName) {
             throw new Error('활성화된 조가 없습니다. 관리자에게 문의하세요.');
         }
         
+        // 2-1. 이미 배정된 사용자인지 전체 조에서 확인 (중복 배정 방지)
+        for (const team of activeTeams) {
+            if (team.members.includes(userName)) {
+                // 이미 배정된 경우 해당 조 정보 반환
+                return {
+                    teamId: team.id,
+                    teamName: team.name,
+                    leader: team.leader,
+                    emblem: LEADER_EMBLEMS[team.leader]?.icon || '⭐',
+                    emblemImage: LEADER_EMBLEMS[team.leader]?.image || '',
+                    color: LEADER_EMBLEMS[team.leader]?.color || '#d4af37',
+                    trait: LEADER_EMBLEMS[team.leader]?.name || '특별',
+                    count: team.count,
+                    alreadyAssigned: true
+                };
+            }
+        }
+        
         // 3. min & min+1 로직으로 후보 조 선택
         const minCount = Math.min(...activeTeams.map(t => t.count));
         const candidateTeams = activeTeams.filter(
@@ -145,7 +163,7 @@ async function assignToTeam(userName) {
                 return currentTeam;
             }
             
-            // 멤버가 이미 존재하는지 확인
+            // 멤버가 이미 존재하는지 확인 (이중 체크)
             const members = currentTeam.members || [];
             if (members.includes(userName)) {
                 // 이미 배정된 경우 트랜잭션 중단
@@ -172,7 +190,8 @@ async function assignToTeam(userName) {
             emblemImage: assignedTeam.emblemImage,
             color: assignedTeam.color,
             trait: assignedTeam.trait,
-            count: assignedTeam.count
+            count: assignedTeam.count,
+            alreadyAssigned: false
         };
         
     } catch (error) {
@@ -200,8 +219,8 @@ function initUserApp() {
     const resultMessage = document.getElementById('resultMessage');
     const confetti = document.getElementById('confetti');
     
-    // LocalStorage에서 저장된 배정 결과 확인
-    const savedAssignment = getFromLocalStorage('userAssignment');
+    // SessionStorage에서 저장된 배정 결과 확인 (브라우저 세션 동안만 유지)
+    const savedAssignment = getFromSessionStorage('userAssignment');
     if (savedAssignment) {
         showResult(savedAssignment);
     }
@@ -238,7 +257,12 @@ function initUserApp() {
             try {
                 const assignment = await assignToTeam(name);
                 
-                // 결과 저장
+                // 이미 배정된 사용자인 경우
+                if (assignment.alreadyAssigned) {
+                    showStatusMessage('이미 배정이 완료되었습니다!', 'info');
+                }
+                
+                // 결과 저장 (세션스토리지 - 브라우저 닫으면 삭제됨)
                 const assignmentData = {
                     name: name,
                     teamName: assignment.teamName,
@@ -249,7 +273,7 @@ function initUserApp() {
                     trait: assignment.trait,
                     timestamp: Date.now()
                 };
-                saveToLocalStorage('userAssignment', assignmentData);
+                saveToSessionStorage('userAssignment', assignmentData);
                 
                 // 결과 화면 표시
                 showResult(assignmentData);
