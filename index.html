@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>배정 모자 - 조 편성</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=MedievalSharp&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <header class="header">
+            <h1 class="title">배정 모자</h1>
+            <p class="subtitle">당신의 운명은 어디로...</p>
+        </header>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content" id="mainContent">
+            <!-- 배정 전 화면 -->
+            <div id="sortingScreen" class="sorting-screen">
+                <div class="hat-container">
+                    <img src="images/sorting-hat.png" alt="Sorting Hat" class="hat-image" id="hatImage">
+                </div>
+
+                <div class="input-section">
+                    <label for="nameInput" class="input-label">당신의 이름은?</label>
+                    <input 
+                        type="text" 
+                        id="nameInput" 
+                        class="name-input" 
+                        placeholder="이름을 입력하세요"
+                        maxlength="20"
+                    >
+                </div>
+
+                <button id="sortButton" class="sort-button">
+                    <span class="button-text">배정 시작</span>
+                </button>
+
+                <!-- 배정 중 대사 -->
+                <div id="thinkingText" class="thinking-text hidden"></div>
+
+                <!-- 상태 메시지 -->
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+
+            <!-- 배정 완료 화면 -->
+            <div id="resultScreen" class="result-screen hidden">
+                <div class="confetti" id="confetti"></div>
+                
+                <div class="result-content">
+                    <h2 class="result-title">당신의 조는...</h2>
+                    <div class="result-house" id="resultHouse"></div>
+                    <div class="result-leader">조장: <span id="resultLeader"></span></div>
+                    <p class="result-message" id="resultMessage"></p>
+                </div>
+            </div>
+        </main>
+
+        <!-- 실시간 현황판 -->
+        <section class="status-board">
+            <h3 class="board-title">🏰 현재 조 편성 현황</h3>
+            <div id="teamsList" class="teams-list">
+                <p class="loading-text">현황을 불러오는 중...</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <!-- App Script -->
+    <script src="app.js"></script>
+    
+    <script>
+        // 사용자 앱 초기화
+        if (typeof initUserApp === 'function') {
+            initUserApp();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>배정 모자 - 관리자</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=MedievalSharp&display=swap" rel="stylesheet">
+</head>
+<body class="admin-body">
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1 class="admin-title">🎓 배정 모자 관리자</h1>
+            <p class="admin-subtitle">조 편성 시스템 제어판</p>
+        </header>
+
+        <main class="admin-main">
+            <!-- 임원(조장) 선택 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">📋 임원(조장) 선택</h2>
+                <p class="section-description">오늘 출석한 임원들을 선택하세요. 선택된 임원 수만큼 조가 생성됩니다.</p>
+                
+                <div class="leaders-grid" id="leadersGrid">
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="임범석">
+                        <span class="leader-label">
+                            <span class="leader-icon">🦁</span>
+                            <span class="leader-name">임범석</span>
+                            <span class="leader-trait">용맹</span>
+                        </span>
+                    </label>
+                    
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="김광림">
+                        <span class="leader-label">
+                            <span class="leader-icon">🦅</span>
+                            <span class="leader-name">김광림</span>
+                            <span class="leader-trait">지혜</span>
+                        </span>
+                    </label>
+                    
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="이혜미">
+                        <span class="leader-label">
+                            <span class="leader-icon">🦊</span>
+                            <span class="leader-name">이혜미</span>
+                            <span class="leader-trait">지략</span>
+                        </span>
+                    </label>
+                    
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="이승석">
+                        <span class="leader-label">
+                            <span class="leader-icon">🐺</span>
+                            <span class="leader-name">이승석</span>
+                            <span class="leader-trait">충성</span>
+                        </span>
+                    </label>
+                    
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="박기도">
+                        <span class="leader-label">
+                            <span class="leader-icon">🐉</span>
+                            <span class="leader-name">박기도</span>
+                            <span class="leader-trait">힘</span>
+                        </span>
+                    </label>
+                    
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="김이레">
+                        <span class="leader-label">
+                            <span class="leader-icon">🦉</span>
+                            <span class="leader-name">김이레</span>
+                            <span class="leader-trait">지식</span>
+                        </span>
+                    </label>
+                    
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="정효정">
+                        <span class="leader-label">
+                            <span class="leader-icon">🐯</span>
+                            <span class="leader-name">정효정</span>
+                            <span class="leader-trait">용기</span>
+                        </span>
+                    </label>
+                    
+                    <label class="leader-checkbox">
+                        <input type="checkbox" class="leader-input" data-leader="우재황">
+                        <span class="leader-label">
+                            <span class="leader-icon">🦌</span>
+                            <span class="leader-name">우재황</span>
+                            <span class="leader-trait">우아함</span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="selected-count">
+                    선택된 임원: <span id="selectedCount">0</span>명 (생성될 조: <span id="teamCount">0</span>개)
+                </div>
+
+                <button id="applyLeadersBtn" class="admin-button primary">
+                    ✅ 조 구성 적용하기
+                </button>
+            </section>
+
+            <!-- 배정 상태 제어 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">🎮 배정 상태 제어</h2>
+                <p class="section-description">배정을 시작하거나 중지할 수 있습니다.</p>
+                
+                <div class="status-control">
+                    <div class="status-indicator" id="statusIndicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">배정 중지됨</span>
+                    </div>
+                    
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sortingToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="status-info" id="statusInfo">
+                    현재 사용자들은 배정을 받을 수 없습니다.
+                </div>
+            </section>
+
+            <!-- 데이터 관리 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">🗑️ 데이터 관리</h2>
+                <p class="section-description">배정 데이터를 초기화할 수 있습니다.</p>
+                
+                <div class="admin-buttons">
+                    <button id="resetAssignmentsBtn" class="admin-button warning">
+                        🔄 배정 결과만 초기화
+                    </button>
+                    
+                    <button id="resetAllBtn" class="admin-button danger">
+                        ⚠️ 전체 데이터 초기화
+                    </button>
+                </div>
+            </section>
+
+            <!-- 실시간 통계 -->
+            <section class="admin-section">
+                <h2 class="section-title">📊 실시간 통계</h2>
+                
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-label">활성 조 수</div>
+                        <div class="stat-value" id="activeTeams">0</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">총 배정 인원</div>
+                        <div class="stat-value" id="totalMembers">0</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">평균 조원 수</div>
+                        <div class="stat-value" id="avgMembers">0.0</div>
+                    </div>
+                </div>
+
+                <div class="teams-detail" id="teamsDetail">
+                    <!-- 조별 상세 정보가 여기 표시됩니다 -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <!-- App Script -->
+    <script src="app.js"></script>
+    
+    <script>
+        // 관리자 앱 초기화
+        if (typeof initAdminApp === 'function') {
+            initAdminApp();
+        }
+    </script>
+</body>
+</html>
