@@ -1,0 +1,8 @@
+# Firebase 설정 파일 (민감한 정보 포함)
+firebase-config.js
+
+# macOS
+.DS_Store
+
+# 로그
+*.log

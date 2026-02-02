@@ -1,16 +1,8 @@
 // ========================================
 // Firebase 설정
 // ========================================
-// 여기에 Firebase 프로젝트 설정을 입력하세요
-const firebaseConfig = {
-    apiKey: "AIzaSyBEh5AU90VBb_7aoexmvcumLWFDvzkC38Y",
-    authDomain: "sorting-hat-9d69e.firebaseapp.com",
-    databaseURL: "https://sorting-hat-9d69e-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "sorting-hat-9d69e",
-    storageBucket: "sorting-hat-9d69e.firebasestorage.app",
-    messagingSenderId: "684009758588",
-    appId: "1:684009758588:web:23c8cf406571125c860ef9"
-};
+// firebaseConfig는 firebase-config.js에서 로드됩니다
+// (로컬 개발: firebase-config.js 파일 / GitHub Pages: GitHub Actions에서 자동 생성)
 
 // Firebase 초기화
 let database;
