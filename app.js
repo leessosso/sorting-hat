@@ -92,20 +92,20 @@ function clearFromSessionStorage(key) {
 async function assignToTeam(userName) {
     const teamsRef = database.ref('teams');
     const configRef = database.ref('config');
-    
+
     try {
         // 1. 배정이 활성화되어 있는지 확인
         const configSnapshot = await configRef.once('value');
         const config = configSnapshot.val() || {};
-        
+
         if (!config.sortingEnabled) {
             throw new Error('현재 배정이 중지되어 있습니다. 관리자에게 문의하세요.');
         }
-        
+
         // 2. 활성화된 조 목록 가져오기
         const teamsSnapshot = await teamsRef.once('value');
         const teamsData = teamsSnapshot.val() || {};
-        
+
         const activeTeams = Object.entries(teamsData)
             .filter(([_, team]) => team.active)
             .map(([teamId, team]) => ({
@@ -115,11 +115,11 @@ async function assignToTeam(userName) {
                 count: team.count || 0,
                 members: team.members || []
             }));
-        
+
         if (activeTeams.length === 0) {
             throw new Error('활성화된 조가 없습니다. 관리자에게 문의하세요.');
         }
-        
+
         // 2-1. 이미 배정된 사용자인지 전체 조에서 확인 (중복 배정 방지)
         for (const team of activeTeams) {
             if (team.members.includes(userName)) {
@@ -137,43 +137,43 @@ async function assignToTeam(userName) {
                 };
             }
         }
-        
+
         // 3. min & min+1 로직으로 후보 조 선택
         const minCount = Math.min(...activeTeams.map(t => t.count));
         const candidateTeams = activeTeams.filter(
             t => t.count === minCount || t.count === minCount + 1
         );
-        
+
         const selectedTeam = getRandomElement(candidateTeams);
-        
+
         // 4. Transaction을 사용하여 동시성 제어
         const teamRef = database.ref(`teams/${selectedTeam.id}`);
-        
+
         let assignedTeam = null;
         await teamRef.transaction((currentTeam) => {
             if (currentTeam === null) {
                 return currentTeam;
             }
-            
+
             // 멤버가 이미 존재하는지 확인 (이중 체크)
             const members = currentTeam.members || [];
             if (members.includes(userName)) {
                 // 이미 배정된 경우 트랜잭션 중단
                 return undefined;
             }
-            
+
             // 새 멤버 추가
             currentTeam.members = [...members, userName];
             currentTeam.count = (currentTeam.count || 0) + 1;
             currentTeam.updatedAt = Date.now();
-            
+
             return currentTeam;
         });
-        
+
         // 5. 최종 팀 정보 가져오기
         const finalSnapshot = await teamRef.once('value');
         assignedTeam = finalSnapshot.val();
-        
+
         return {
             teamId: selectedTeam.id,
             teamName: assignedTeam.name,
@@ -185,7 +185,7 @@ async function assignToTeam(userName) {
             count: assignedTeam.count,
             alreadyAssigned: false
         };
-        
+
     } catch (error) {
         console.error('Team assignment error:', error);
         throw error;
@@ -198,7 +198,7 @@ async function assignToTeam(userName) {
 
 function initUserApp() {
     console.log('Initializing user app...');
-    
+
     const nameInput = document.getElementById('nameInput');
     const sortButton = document.getElementById('sortButton');
     const hatImage = document.getElementById('hatImage');
@@ -210,50 +210,50 @@ function initUserApp() {
     const resultLeader = document.getElementById('resultLeader');
     const resultMessage = document.getElementById('resultMessage');
     const confetti = document.getElementById('confetti');
-    
+
     // SessionStorage에서 저장된 배정 결과 확인 (브라우저 세션 동안만 유지)
     const savedAssignment = getFromSessionStorage('userAssignment');
     if (savedAssignment) {
         showResult(savedAssignment);
     }
-    
+
     // 배정 버튼 클릭
     sortButton.addEventListener('click', async () => {
         const name = nameInput.value.trim();
-        
+
         if (!name) {
             showStatusMessage('이름을 입력해주세요!', 'error');
             return;
         }
-        
+
         if (name.length < 2) {
             showStatusMessage('이름은 최소 2글자 이상이어야 합니다.', 'error');
             return;
         }
-        
+
         // 버튼 비활성화
         sortButton.disabled = true;
         nameInput.disabled = true;
         statusMessage.textContent = '';
         statusMessage.className = 'status-message';
-        
+
         // 애니메이션 시작
         hatImage.classList.add('wobbling');
-        
+
         // 랜덤 대사 표시
         thinkingText.textContent = getRandomElement(THINKING_PHRASES);
         thinkingText.classList.remove('hidden');
-        
+
         // 3초 후 배정 실행
         setTimeout(async () => {
             try {
                 const assignment = await assignToTeam(name);
-                
+
                 // 이미 배정된 사용자인 경우
                 if (assignment.alreadyAssigned) {
                     showStatusMessage('이미 배정이 완료되었습니다!', 'info');
                 }
-                
+
                 // 결과 저장 (세션스토리지 - 브라우저 닫으면 삭제됨)
                 const assignmentData = {
                     name: name,
@@ -266,14 +266,14 @@ function initUserApp() {
                     timestamp: Date.now()
                 };
                 saveToSessionStorage('userAssignment', assignmentData);
-                
+
                 // 결과 화면 표시
                 showResult(assignmentData);
-                
+
             } catch (error) {
                 console.error('Assignment error:', error);
                 showStatusMessage(error.message, 'error');
-                
+
                 // 버튼 다시 활성화
                 sortButton.disabled = false;
                 nameInput.disabled = false;
@@ -282,24 +282,24 @@ function initUserApp() {
             }
         }, 3000);
     });
-    
+
     // 상태 메시지 표시 함수
     function showStatusMessage(message, type = 'info') {
         statusMessage.textContent = message;
         statusMessage.className = `status-message ${type}`;
     }
-    
+
     // 결과 화면 표시 함수
     function showResult(data) {
         // 애니메이션 중지
         hatImage.classList.remove('wobbling');
         thinkingText.classList.add('hidden');
-        
+
         // 결과 데이터 설정
-        const emblemInfo = data.emblemImage ? 
-            `<img src="${data.emblemImage}" alt="Emblem" style="width: 150px; height: 150px; object-fit: contain; margin-bottom: 20px;"><br>` : 
+        const emblemInfo = data.emblemImage ?
+            `<img src="${data.emblemImage}" alt="Emblem" style="width: 150px; height: 150px; object-fit: contain; margin-bottom: 20px;"><br>` :
             (data.emblem ? `<span style="font-size: 3rem;">${data.emblem}</span><br>` : '');
-        
+
         resultHouse.innerHTML = `${emblemInfo}${data.teamName}`;
         if (data.color) {
             resultHouse.style.color = data.color;
@@ -307,18 +307,18 @@ function initUserApp() {
         }
         resultLeader.textContent = data.leader;
         resultMessage.textContent = getRandomElement(SUCCESS_MESSAGES);
-        
+
         // 화면 전환
         sortingScreen.classList.add('hidden');
         resultScreen.classList.remove('hidden');
-        
+
         // Confetti 효과
         confetti.classList.add('active');
         setTimeout(() => {
             confetti.classList.remove('active');
         }, 3000);
     }
-    
+
     // 실시간 현황판 업데이트
     updateTeamsStatus();
     database.ref('teams').on('value', updateTeamsStatus);
@@ -328,29 +328,29 @@ function initUserApp() {
 function updateTeamsStatus() {
     const teamsList = document.getElementById('teamsList');
     if (!teamsList) return;
-    
+
     database.ref('teams').once('value', (snapshot) => {
         const teamsData = snapshot.val() || {};
         const activeTeams = Object.entries(teamsData)
             .filter(([_, team]) => team.active)
             .sort((a, b) => a[1].name.localeCompare(b[1].name));
-        
+
         if (activeTeams.length === 0) {
             teamsList.innerHTML = '<p class="loading-text">아직 생성된 조가 없습니다.</p>';
             return;
         }
-        
+
         teamsList.innerHTML = activeTeams.map(([teamId, team]) => {
             const members = team.members || [];
             const count = team.count || 0;
             const emblem = team.emblem || '⭐';
             const emblemImage = team.emblemImage || '';
             const color = team.color || 'var(--color-gold)';
-            
-            const emblemDisplay = emblemImage ? 
+
+            const emblemDisplay = emblemImage ?
                 `<img src="${emblemImage}" alt="Emblem" style="width: 40px; height: 40px; object-fit: contain; margin-right: 8px;">` :
                 `<span style="font-size: 1.5rem; margin-right: 8px;">${emblem}</span>`;
-            
+
             return `
                 <div class="team-card" style="border-color: ${color}50;">
                     <div class="team-header">
@@ -361,10 +361,10 @@ function updateTeamsStatus() {
                         <div class="team-count">${count}명</div>
                     </div>
                     <div class="team-members">
-                        ${members.length > 0 
-                            ? members.map(m => `<span class="member-badge">${m}</span>`).join('')
-                            : '<span class="member-badge" style="opacity: 0.5;">아직 배정된 인원이 없습니다</span>'
-                        }
+                        ${members.length > 0
+                    ? members.map(m => `<span class="member-badge">${m}</span>`).join('')
+                    : '<span class="member-badge" style="opacity: 0.5;">아직 배정된 인원이 없습니다</span>'
+                }
                     </div>
                 </div>
             `;
@@ -378,7 +378,7 @@ function updateTeamsStatus() {
 
 function initAdminApp() {
     console.log('Initializing admin app...');
-    
+
     const leadersGrid = document.getElementById('leadersGrid');
     const selectedCount = document.getElementById('selectedCount');
     const teamCount = document.getElementById('teamCount');
@@ -392,49 +392,49 @@ function initAdminApp() {
     const totalMembers = document.getElementById('totalMembers');
     const avgMembers = document.getElementById('avgMembers');
     const teamsDetail = document.getElementById('teamsDetail');
-    
+
     // 임원 선택 카운트 업데이트
     leadersGrid.addEventListener('change', () => {
         const checked = leadersGrid.querySelectorAll('.leader-input:checked').length;
         selectedCount.textContent = checked;
         teamCount.textContent = checked;
     });
-    
+
     // 조 구성 적용
     applyLeadersBtn.addEventListener('click', async () => {
         const checkedInputs = leadersGrid.querySelectorAll('.leader-input:checked');
-        
+
         if (checkedInputs.length === 0) {
             alert('최소 1명 이상의 임원을 선택해주세요.');
             return;
         }
-        
+
         if (!confirm(`${checkedInputs.length}개의 조를 생성하시겠습니까?`)) {
             return;
         }
-        
+
         applyLeadersBtn.disabled = true;
         applyLeadersBtn.textContent = '생성 중...';
-        
+
         try {
             const teamsRef = database.ref('teams');
-            
+
             // 기존 조 비활성화
             const snapshot = await teamsRef.once('value');
             const existingTeams = snapshot.val() || {};
-            
+
             const updates = {};
             Object.keys(existingTeams).forEach(teamId => {
                 updates[`${teamId}/active`] = false;
             });
-            
+
             // 새 조 생성
             checkedInputs.forEach((input, index) => {
                 const leaderName = input.dataset.leader;
                 const teamNumber = index + 1;
                 const teamId = `team_${Date.now()}_${teamNumber}`;
                 const emblem = LEADER_EMBLEMS[leaderName] || { icon: '⭐', image: '', color: '#d4af37', name: '특별' };
-                
+
                 updates[teamId] = {
                     name: `${teamNumber}조`,
                     leader: leaderName,
@@ -448,11 +448,11 @@ function initAdminApp() {
                     createdAt: Date.now()
                 };
             });
-            
+
             await teamsRef.update(updates);
-            
+
             alert('조 구성이 완료되었습니다!');
-            
+
         } catch (error) {
             console.error('Apply leaders error:', error);
             alert('조 구성 중 오류가 발생했습니다: ' + error.message);
@@ -461,12 +461,12 @@ function initAdminApp() {
             applyLeadersBtn.textContent = '✅ 조 구성 적용하기';
         }
     });
-    
+
     // 배정 상태 토글
     database.ref('config/sortingEnabled').on('value', (snapshot) => {
         const enabled = snapshot.val() || false;
         sortingToggle.checked = enabled;
-        
+
         if (enabled) {
             statusIndicator.classList.add('active');
             statusIndicator.querySelector('.status-text').textContent = '배정 진행 중';
@@ -479,10 +479,10 @@ function initAdminApp() {
             statusInfo.style.color = 'var(--color-parchment)';
         }
     });
-    
+
     sortingToggle.addEventListener('change', async () => {
         const enabled = sortingToggle.checked;
-        
+
         try {
             await database.ref('config/sortingEnabled').set(enabled);
         } catch (error) {
@@ -491,72 +491,72 @@ function initAdminApp() {
             sortingToggle.checked = !enabled;
         }
     });
-    
+
     // 배정 결과만 초기화
     resetAssignmentsBtn.addEventListener('click', async () => {
         if (!confirm('모든 배정 결과를 초기화하시겠습니까? (조 구성은 유지됩니다)')) {
             return;
         }
-        
+
         try {
             const teamsRef = database.ref('teams');
             const snapshot = await teamsRef.once('value');
             const teams = snapshot.val() || {};
-            
+
             const updates = {};
             Object.keys(teams).forEach(teamId => {
                 updates[`${teamId}/count`] = 0;
                 updates[`${teamId}/members`] = [];
             });
-            
+
             await teamsRef.update(updates);
             alert('배정 결과가 초기화되었습니다.');
-            
+
         } catch (error) {
             console.error('Reset assignments error:', error);
             alert('초기화 중 오류가 발생했습니다: ' + error.message);
         }
     });
-    
+
     // 전체 데이터 초기화
     resetAllBtn.addEventListener('click', async () => {
         if (!confirm('⚠️ 경고: 모든 조와 배정 데이터를 삭제합니다. 계속하시겠습니까?')) {
             return;
         }
-        
+
         if (!confirm('정말로 전체 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다!')) {
             return;
         }
-        
+
         try {
             await database.ref('teams').remove();
             await database.ref('config').set({
                 sortingEnabled: false
             });
-            
+
             alert('전체 데이터가 초기화되었습니다.');
-            
+
         } catch (error) {
             console.error('Reset all error:', error);
             alert('초기화 중 오류가 발생했습니다: ' + error.message);
         }
     });
-    
+
     // 실시간 통계 업데이트
     database.ref('teams').on('value', (snapshot) => {
         const teamsData = snapshot.val() || {};
         const teams = Object.entries(teamsData)
             .filter(([_, team]) => team.active)
             .map(([id, team]) => ({ id, ...team }));
-        
+
         const active = teams.length;
         const total = teams.reduce((sum, team) => sum + (team.count || 0), 0);
         const avg = active > 0 ? (total / active).toFixed(1) : '0.0';
-        
+
         activeTeams.textContent = active;
         totalMembers.textContent = total;
         avgMembers.textContent = avg;
-        
+
         // 조별 상세 정보
         if (teams.length === 0) {
             teamsDetail.innerHTML = '<p class="loading-text">생성된 조가 없습니다.</p>';
@@ -566,11 +566,11 @@ function initAdminApp() {
                 const emblem = team.emblem || '⭐';
                 const emblemImage = team.emblemImage || '';
                 const color = team.color || 'var(--color-gold)';
-                
-                const emblemDisplay = emblemImage ? 
+
+                const emblemDisplay = emblemImage ?
                     `<img src="${emblemImage}" alt="Emblem" style="width: 40px; height: 40px; object-fit: contain; margin-right: 8px;">` :
                     `<span style="font-size: 1.5rem; margin-right: 8px;">${emblem}</span>`;
-                
+
                 return `
                     <div class="team-detail-card" style="border-color: ${color}50;">
                         <div class="team-detail-header">
@@ -581,10 +581,10 @@ function initAdminApp() {
                             <div class="team-detail-count">${team.count || 0}명</div>
                         </div>
                         <div class="team-detail-members">
-                            ${members.length > 0 
-                                ? '👥 ' + members.join(', ')
-                                : '아직 배정된 인원이 없습니다.'
-                            }
+                            ${members.length > 0
+                        ? '👥 ' + members.join(', ')
+                        : '아직 배정된 인원이 없습니다.'
+                    }
                         </div>
                     </div>
                 `;

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +8,10 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=MedievalSharp&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=MedievalSharp&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
     <div class="container">
         <!-- 헤더 -->
@@ -27,13 +30,7 @@
 
                 <div class="input-section">
                     <label for="nameInput" class="input-label">당신의 이름은?</label>
-                    <input 
-                        type="text" 
-                        id="nameInput" 
-                        class="name-input" 
-                        placeholder="이름을 입력하세요"
-                        maxlength="20"
-                    >
+                    <input type="text" id="nameInput" class="name-input" placeholder="이름을 입력하세요" maxlength="20">
                 </div>
 
                 <button id="sortButton" class="sort-button">
@@ -50,7 +47,7 @@
             <!-- 배정 완료 화면 -->
             <div id="resultScreen" class="result-screen hidden">
                 <div class="confetti" id="confetti"></div>
-                
+
                 <div class="result-content">
                     <h2 class="result-title">당신의 조는...</h2>
                     <div class="result-house" id="resultHouse"></div>
@@ -72,13 +69,13 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    
+
     <!-- Firebase Config -->
     <script src="firebase-config.js"></script>
-    
+
     <!-- App Script -->
     <script src="app.js"></script>
-    
+
     <script>
         // 사용자 앱 초기화
         if (typeof initUserApp === 'function') {
@@ -86,4 +83,5 @@
         }
     </script>
 </body>
+
 </html>
