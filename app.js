@@ -211,10 +211,51 @@ function initUserApp() {
     const resultMessage = document.getElementById('resultMessage');
     const confetti = document.getElementById('confetti');
 
-    // SessionStorage에서 저장된 배정 결과 확인 (브라우저 세션 동안만 유지)
+    // SessionStorage에서 저장된 배정 결과 확인 및 검증
     const savedAssignment = getFromSessionStorage('userAssignment');
     if (savedAssignment) {
-        showResult(savedAssignment);
+        // Firebase에서 실제로 배정이 유효한지 확인
+        validateAndShowAssignment(savedAssignment);
+    }
+    
+    // Firebase에서 배정 정보 검증 함수
+    async function validateAndShowAssignment(savedData) {
+        try {
+            const teamsRef = database.ref('teams');
+            const snapshot = await teamsRef.once('value');
+            const teamsData = snapshot.val() || {};
+            
+            // 모든 활성 조에서 사용자 이름 찾기
+            let found = false;
+            for (const [teamId, team] of Object.entries(teamsData)) {
+                if (team.active && team.members && team.members.includes(savedData.name)) {
+                    found = true;
+                    // Firebase 데이터로 업데이트된 정보 표시
+                    const updatedData = {
+                        ...savedData,
+                        teamName: team.name,
+                        leader: team.leader,
+                        emblem: team.emblem,
+                        emblemImage: team.emblemImage,
+                        color: team.color,
+                        trait: team.trait
+                    };
+                    showResult(updatedData);
+                    break;
+                }
+            }
+            
+            // Firebase에 데이터가 없으면 SessionStorage 삭제
+            if (!found) {
+                console.log('배정 데이터가 초기화되었습니다. SessionStorage를 삭제합니다.');
+                clearFromSessionStorage('userAssignment');
+                // 입력 화면이 기본으로 표시됨
+            }
+        } catch (error) {
+            console.error('Assignment validation error:', error);
+            // 오류 발생 시 SessionStorage 삭제
+            clearFromSessionStorage('userAssignment');
+        }
     }
 
     // 배정 버튼 클릭
@@ -802,10 +843,37 @@ function initSeatDrawApp() {
     const seatMessage = document.getElementById('seatMessage');
     const seatConfetti = document.getElementById('seatConfetti');
     
-    // SessionStorage에서 저장된 자리 배정 확인
+    // SessionStorage에서 저장된 자리 배정 확인 및 검증
     const savedSeat = getFromSessionStorage('userSeat');
     if (savedSeat) {
-        showSeatResult(savedSeat);
+        // Firebase에서 실제로 자리 배정이 유효한지 확인
+        validateAndShowSeat(savedSeat);
+    }
+    
+    // Firebase에서 자리 배정 정보 검증 함수
+    async function validateAndShowSeat(savedData) {
+        try {
+            const seatsRef = database.ref('seats');
+            const snapshot = await seatsRef.once('value');
+            const seatsData = snapshot.val() || {};
+            
+            // 저장된 자리 번호에 해당 사용자가 있는지 확인
+            const seatInfo = seatsData[savedData.seatNumber];
+            
+            if (seatInfo && seatInfo.leader === savedData.name) {
+                // 유효한 배정이면 결과 표시
+                showSeatResult(savedData);
+            } else {
+                // Firebase에 데이터가 없으면 SessionStorage 삭제
+                console.log('자리 배정이 초기화되었습니다. SessionStorage를 삭제합니다.');
+                clearFromSessionStorage('userSeat');
+                // 입력 화면이 기본으로 표시됨
+            }
+        } catch (error) {
+            console.error('Seat validation error:', error);
+            // 오류 발생 시 SessionStorage 삭제
+            clearFromSessionStorage('userSeat');
+        }
     }
     
     // 자리 뽑기 버튼 클릭
