@@ -16,12 +16,18 @@
     <div class="container">
         <!-- 헤더 -->
         <header class="header">
-            <h1 class="title">배정 모자</h1>
-            <p class="subtitle">당신의 운명은 어디로...</p>
+            <h1 class="title">배정 시스템</h1>
+            <p class="subtitle">조 배정 & 자리 선정</p>
         </header>
 
-        <!-- 메인 콘텐츠 -->
-        <main class="main-content" id="mainContent">
+        <!-- 탭 메뉴 -->
+        <nav class="tab-nav">
+            <button class="tab-button active" data-tab="team">🎓 조 배정</button>
+            <button class="tab-button" data-tab="seat">🪑 자리 뽑기</button>
+        </nav>
+
+        <!-- 조 배정 탭 -->
+        <main class="main-content tab-content active" id="teamTab">
             <!-- 배정 전 화면 -->
             <div id="sortingScreen" class="sorting-screen">
                 <div class="hat-container">
@@ -57,13 +63,57 @@
             </div>
         </main>
 
-        <!-- 실시간 현황판 -->
-        <section class="status-board">
-            <h3 class="board-title">🏰 현재 조 편성 현황</h3>
-            <div id="teamsList" class="teams-list">
-                <p class="loading-text">현황을 불러오는 중...</p>
+            <!-- 실시간 현황판 -->
+            <section class="status-board">
+                <h3 class="board-title">🏰 현재 조 편성 현황</h3>
+                <div id="teamsList" class="teams-list">
+                    <p class="loading-text">현황을 불러오는 중...</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- 자리 뽑기 탭 -->
+        <main class="main-content tab-content" id="seatTab">
+            <!-- 뽑기 전 화면 -->
+            <div id="seatDrawScreen" class="sorting-screen">
+                <div class="seat-icon">🎰</div>
+
+                <div class="input-section">
+                    <label for="seatNameInput" class="input-label">조장 이름</label>
+                    <input type="text" id="seatNameInput" class="name-input" placeholder="이름을 입력하세요"
+                        maxlength="20">
+                </div>
+
+                <button id="seatDrawButton" class="sort-button">
+                    <span class="button-text">자리 뽑기</span>
+                </button>
+
+                <!-- 뽑는 중 표시 -->
+                <div id="seatThinkingText" class="thinking-text hidden"></div>
+
+                <!-- 상태 메시지 -->
+                <div id="seatStatusMessage" class="status-message"></div>
             </div>
-        </section>
+
+            <!-- 자리 배정 완료 화면 -->
+            <div id="seatResultScreen" class="result-screen hidden">
+                <div class="confetti" id="seatConfetti"></div>
+
+                <div class="result-content">
+                    <h2 class="result-title">당신의 자리는...</h2>
+                    <div class="result-house seat-number" id="seatNumber"></div>
+                    <p class="result-message" id="seatMessage"></p>
+                </div>
+            </div>
+
+            <!-- 실시간 자리 현황판 -->
+            <section class="status-board">
+                <h3 class="board-title">🪑 자리 배정 현황</h3>
+                <div id="seatsList" class="seats-grid">
+                    <p class="loading-text">현황을 불러오는 중...</p>
+                </div>
+            </section>
+        </main>
     </div>
 
     <!-- Firebase SDK -->

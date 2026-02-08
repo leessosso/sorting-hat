@@ -1,5 +1,5 @@
 /* ========================================
-   배정 모자 - 전역 스타일 & 변수
+   배정 시스템 - 전역 스타일 & 변수
    ======================================== */
 
 :root {
@@ -907,3 +907,155 @@ input:checked + .toggle-slider:before {
 .hidden {
     display: none !important;
 }
+
+/* ========================================
+   탭 네비게이션
+   ======================================== */
+
+.tab-nav {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.tab-button {
+    padding: 12px 30px;
+    font-family: var(--font-title);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-parchment);
+    background: rgba(42, 42, 62, 0.6);
+    border: 2px solid rgba(212, 175, 55, 0.3);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.tab-button:hover {
+    background: rgba(42, 42, 62, 0.8);
+    border-color: var(--color-gold);
+    transform: translateY(-2px);
+}
+
+.tab-button.active {
+    background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-light) 100%);
+    color: var(--color-dark);
+    border-color: var(--color-gold);
+    box-shadow: var(--shadow-gold);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ========================================
+   자리 뽑기 전용 스타일
+   ======================================== */
+
+.seat-icon {
+    font-size: 120px;
+    margin: 20px 0;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+.seat-number {
+    font-size: 8rem !important;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    margin: 20px 0;
+}
+
+/* 자리 현황판 그리드 */
+.seats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 15px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.seat-card {
+    background: rgba(42, 42, 62, 0.6);
+    border: 2px solid var(--color-gold);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.seat-card.assigned {
+    background: rgba(46, 204, 113, 0.2);
+    border-color: var(--color-success);
+}
+
+.seat-card.available {
+    opacity: 0.5;
+}
+
+.seat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+}
+
+.seat-number-display {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--color-gold);
+    margin-bottom: 8px;
+}
+
+.seat-card.assigned .seat-number-display {
+    color: var(--color-success);
+}
+
+.seat-leader-name {
+    font-size: 0.95rem;
+    color: var(--color-parchment);
+    font-weight: 500;
+    margin-top: 5px;
+}
+
+@media (max-width: 768px) {
+    .seats-grid {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 10px;
+    }
+    
+    .seat-card {
+        padding: 15px 10px;
+    }
+    
+    .seat-number-display {
+        font-size: 2rem;
+    }
+    
+    .seat-number {
+        font-size: 5rem !important;
+    }
+    
+    .tab-nav {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .tab-button {
+        width: 100%;
+    }
+}
+

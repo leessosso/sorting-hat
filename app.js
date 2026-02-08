@@ -530,8 +530,10 @@ function initAdminApp() {
 
         try {
             await database.ref('teams').remove();
+            await database.ref('seats').remove();
             await database.ref('config').set({
-                sortingEnabled: false
+                sortingEnabled: false,
+                seatDrawEnabled: false
             });
 
             alert('전체 데이터가 초기화되었습니다.');
@@ -539,6 +541,96 @@ function initAdminApp() {
         } catch (error) {
             console.error('Reset all error:', error);
             alert('초기화 중 오류가 발생했습니다: ' + error.message);
+        }
+    });
+
+    // 자리 뽑기 토글
+    const seatDrawToggle = document.getElementById('seatDrawToggle');
+    const seatStatusIndicator = document.getElementById('seatStatusIndicator');
+    const seatStatusInfo = document.getElementById('seatStatusInfo');
+    const resetSeatsBtn = document.getElementById('resetSeatsBtn');
+    const assignedSeats = document.getElementById('assignedSeats');
+    const remainingSeats = document.getElementById('remainingSeats');
+    const seatsDetail = document.getElementById('seatsDetail');
+
+    // 자리 뽑기 상태 토글
+    database.ref('config/seatDrawEnabled').on('value', (snapshot) => {
+        const enabled = snapshot.val() || false;
+        seatDrawToggle.checked = enabled;
+
+        if (enabled) {
+            seatStatusIndicator.classList.add('active');
+            seatStatusIndicator.querySelector('.status-text').textContent = '자리 뽑기 진행 중';
+            seatStatusInfo.textContent = '조장들이 자리를 배정받을 수 있습니다.';
+            seatStatusInfo.style.color = 'var(--color-success)';
+        } else {
+            seatStatusIndicator.classList.remove('active');
+            seatStatusIndicator.querySelector('.status-text').textContent = '자리 뽑기 중지됨';
+            seatStatusInfo.textContent = '현재 조장들은 자리를 배정받을 수 없습니다.';
+            seatStatusInfo.style.color = 'var(--color-parchment)';
+        }
+    });
+
+    seatDrawToggle.addEventListener('change', async () => {
+        const enabled = seatDrawToggle.checked;
+
+        try {
+            await database.ref('config/seatDrawEnabled').set(enabled);
+        } catch (error) {
+            console.error('Toggle seat draw error:', error);
+            alert('상태 변경 중 오류가 발생했습니다: ' + error.message);
+            seatDrawToggle.checked = !enabled;
+        }
+    });
+
+    // 자리 배정 결과만 초기화
+    resetSeatsBtn.addEventListener('click', async () => {
+        if (!confirm('모든 자리 배정 결과를 초기화하시겠습니까?')) {
+            return;
+        }
+
+        try {
+            await database.ref('seats').remove();
+            alert('자리 배정 결과가 초기화되었습니다.');
+
+        } catch (error) {
+            console.error('Reset seats error:', error);
+            alert('초기화 중 오류가 발생했습니다: ' + error.message);
+        }
+    });
+
+    // 자리 배정 실시간 통계
+    database.ref('seats').on('value', (snapshot) => {
+        const seatsData = snapshot.val() || {};
+        const assigned = Object.keys(seatsData).length;
+        const remaining = 22 - assigned;
+
+        assignedSeats.textContent = assigned;
+        remainingSeats.textContent = remaining;
+
+        // 자리별 상세 정보
+        if (assigned === 0) {
+            seatsDetail.innerHTML = '<p class="loading-text">아직 배정된 자리가 없습니다.</p>';
+        } else {
+            const seatsList = Object.entries(seatsData)
+                .map(([number, info]) => ({
+                    number: parseInt(number),
+                    leader: info.leader,
+                    time: info.assignedAt
+                }))
+                .sort((a, b) => a.number - b.number);
+
+            seatsDetail.innerHTML = seatsList.map(seat => `
+                <div class="team-detail-card" style="border-color: var(--color-success)50;">
+                    <div class="team-detail-header">
+                        <div class="team-detail-name" style="color: var(--color-success); display: flex; align-items: center;">
+                            <span style="font-size: 1.5rem; margin-right: 8px;">🪑</span>
+                            <span>${seat.number}번 자리</span>
+                        </div>
+                        <div class="team-detail-count">${seat.leader}</div>
+                    </div>
+                </div>
+            `).join('');
         }
     });
 
@@ -598,3 +690,262 @@ function initAdminApp() {
 // ========================================
 window.initUserApp = initUserApp;
 window.initAdminApp = initAdminApp;
+
+// ========================================
+// 자리 뽑기 기능
+// ========================================
+
+const SEAT_THINKING_PHRASES = [
+    "자리를 고민하는 중...",
+    "어디가 좋을까요?",
+    "운명의 번호를 찾는 중...",
+    "완벽한 자리를 찾고 있어요!",
+    "잠시만 기다려주세요...",
+    "좋은 자리가 나올 거예요!",
+    "번호를 뽑는 중..."
+];
+
+const SEAT_SUCCESS_MESSAGES = [
+    "축하합니다! 좋은 자리네요!",
+    "당신의 자리가 결정되었습니다!",
+    "완벽한 선택입니다!",
+    "이 자리에서 좋은 시간 보내세요!",
+    "멋진 자리를 배정받았어요!"
+];
+
+// 자리 배정 로직
+async function assignSeat(leaderName) {
+    const seatsRef = database.ref('seats');
+    const configRef = database.ref('config');
+    
+    try {
+        // 1. 자리 배정이 활성화되어 있는지 확인
+        const configSnapshot = await configRef.once('value');
+        const config = configSnapshot.val() || {};
+        
+        if (!config.seatDrawEnabled) {
+            throw new Error('현재 자리 뽑기가 중지되어 있습니다. 관리자에게 문의하세요.');
+        }
+        
+        // 2. 현재 배정된 자리 목록 가져오기
+        const seatsSnapshot = await seatsRef.once('value');
+        const seatsData = seatsSnapshot.val() || {};
+        
+        // 2-1. 이미 배정받은 사람인지 확인
+        const existingAssignment = Object.entries(seatsData).find(
+            ([_, seat]) => seat.leader === leaderName
+        );
+        
+        if (existingAssignment) {
+            const [seatNumber, seatInfo] = existingAssignment;
+            return {
+                seatNumber: parseInt(seatNumber),
+                leader: seatInfo.leader,
+                alreadyAssigned: true
+            };
+        }
+        
+        // 3. 사용 가능한 자리 번호 찾기 (1~22)
+        const assignedNumbers = Object.keys(seatsData).map(n => parseInt(n));
+        const availableNumbers = [];
+        for (let i = 1; i <= 22; i++) {
+            if (!assignedNumbers.includes(i)) {
+                availableNumbers.push(i);
+            }
+        }
+        
+        if (availableNumbers.length === 0) {
+            throw new Error('모든 자리가 배정되었습니다!');
+        }
+        
+        // 4. 랜덤으로 자리 선택
+        const selectedNumber = getRandomElement(availableNumbers);
+        
+        // 5. Transaction으로 동시성 제어
+        const seatRef = database.ref(`seats/${selectedNumber}`);
+        
+        await seatRef.transaction((currentSeat) => {
+            if (currentSeat !== null) {
+                // 이미 누군가 배정받음
+                return undefined;
+            }
+            
+            return {
+                leader: leaderName,
+                assignedAt: Date.now()
+            };
+        });
+        
+        return {
+            seatNumber: selectedNumber,
+            leader: leaderName,
+            alreadyAssigned: false
+        };
+        
+    } catch (error) {
+        console.error('Seat assignment error:', error);
+        throw error;
+    }
+}
+
+// 자리 뽑기 앱 초기화
+function initSeatDrawApp() {
+    console.log('Initializing seat draw app...');
+    
+    const seatNameInput = document.getElementById('seatNameInput');
+    const seatDrawButton = document.getElementById('seatDrawButton');
+    const seatThinkingText = document.getElementById('seatThinkingText');
+    const seatStatusMessage = document.getElementById('seatStatusMessage');
+    const seatDrawScreen = document.getElementById('seatDrawScreen');
+    const seatResultScreen = document.getElementById('seatResultScreen');
+    const seatNumber = document.getElementById('seatNumber');
+    const seatMessage = document.getElementById('seatMessage');
+    const seatConfetti = document.getElementById('seatConfetti');
+    
+    // SessionStorage에서 저장된 자리 배정 확인
+    const savedSeat = getFromSessionStorage('userSeat');
+    if (savedSeat) {
+        showSeatResult(savedSeat);
+    }
+    
+    // 자리 뽑기 버튼 클릭
+    seatDrawButton.addEventListener('click', async () => {
+        const name = seatNameInput.value.trim();
+        
+        if (!name) {
+            showSeatStatusMessage('이름을 입력해주세요!', 'error');
+            return;
+        }
+        
+        if (name.length < 2) {
+            showSeatStatusMessage('이름은 최소 2글자 이상이어야 합니다.', 'error');
+            return;
+        }
+        
+        // 버튼 비활성화
+        seatDrawButton.disabled = true;
+        seatNameInput.disabled = true;
+        seatStatusMessage.textContent = '';
+        seatStatusMessage.className = 'status-message';
+        
+        // 랜덤 대사 표시
+        seatThinkingText.textContent = getRandomElement(SEAT_THINKING_PHRASES);
+        seatThinkingText.classList.remove('hidden');
+        
+        // 2초 후 자리 배정 실행
+        setTimeout(async () => {
+            try {
+                const assignment = await assignSeat(name);
+                
+                // 이미 배정된 경우
+                if (assignment.alreadyAssigned) {
+                    showSeatStatusMessage('이미 자리 배정이 완료되었습니다!', 'info');
+                }
+                
+                // 결과 저장
+                const seatData = {
+                    name: name,
+                    seatNumber: assignment.seatNumber,
+                    timestamp: Date.now()
+                };
+                saveToSessionStorage('userSeat', seatData);
+                
+                // 결과 화면 표시
+                showSeatResult(seatData);
+                
+            } catch (error) {
+                console.error('Seat draw error:', error);
+                showSeatStatusMessage(error.message, 'error');
+                
+                // 버튼 다시 활성화
+                seatDrawButton.disabled = false;
+                seatNameInput.disabled = false;
+                seatThinkingText.classList.add('hidden');
+            }
+        }, 2000);
+    });
+    
+    // 상태 메시지 표시 함수
+    function showSeatStatusMessage(message, type = 'info') {
+        seatStatusMessage.textContent = message;
+        seatStatusMessage.className = `status-message ${type}`;
+    }
+    
+    // 결과 화면 표시 함수
+    function showSeatResult(data) {
+        seatThinkingText.classList.add('hidden');
+        
+        seatNumber.textContent = `${data.seatNumber}번`;
+        seatMessage.textContent = getRandomElement(SEAT_SUCCESS_MESSAGES);
+        
+        // 화면 전환
+        seatDrawScreen.classList.add('hidden');
+        seatResultScreen.classList.remove('hidden');
+        
+        // Confetti 효과
+        seatConfetti.classList.add('active');
+        setTimeout(() => {
+            seatConfetti.classList.remove('active');
+        }, 3000);
+    }
+    
+    // 실시간 자리 현황판 업데이트
+    updateSeatsStatus();
+    database.ref('seats').on('value', updateSeatsStatus);
+}
+
+// 실시간 자리 현황판 업데이트
+function updateSeatsStatus() {
+    const seatsList = document.getElementById('seatsList');
+    if (!seatsList) return;
+    
+    database.ref('seats').once('value', (snapshot) => {
+        const seatsData = snapshot.val() || {};
+        
+        // 1~22번 자리 생성
+        const seatsHTML = [];
+        for (let i = 1; i <= 22; i++) {
+            const seat = seatsData[i];
+            const isAssigned = seat && seat.leader;
+            
+            seatsHTML.push(`
+                <div class="seat-card ${isAssigned ? 'assigned' : 'available'}">
+                    <div class="seat-number-display">${i}</div>
+                    ${isAssigned ? `<div class="seat-leader-name">${seat.leader}</div>` : '<div class="seat-leader-name" style="opacity: 0.5;">-</div>'}
+                </div>
+            `);
+        }
+        
+        seatsList.innerHTML = seatsHTML.join('');
+    });
+}
+
+// 탭 전환 기능
+function initTabSwitching() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const targetTab = button.dataset.tab;
+            
+            // 모든 탭 버튼과 콘텐츠 비활성화
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // 선택된 탭 활성화
+            button.classList.add('active');
+            const targetContent = document.getElementById(`${targetTab}Tab`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+        });
+    });
+}
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    initTabSwitching();
+    initSeatDrawApp();
+});
+

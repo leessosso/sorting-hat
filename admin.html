@@ -102,8 +102,8 @@
 
             <!-- 배정 상태 제어 섹션 -->
             <section class="admin-section">
-                <h2 class="section-title">🎮 배정 상태 제어</h2>
-                <p class="section-description">배정을 시작하거나 중지할 수 있습니다.</p>
+                <h2 class="section-title">🎮 조 배정 상태 제어</h2>
+                <p class="section-description">조 배정을 시작하거나 중지할 수 있습니다.</p>
 
                 <div class="status-control">
                     <div class="status-indicator" id="statusIndicator">
@@ -122,6 +122,28 @@
                 </div>
             </section>
 
+            <!-- 자리 뽑기 상태 제어 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">🪑 자리 뽑기 상태 제어</h2>
+                <p class="section-description">자리 뽑기를 시작하거나 중지할 수 있습니다.</p>
+
+                <div class="status-control">
+                    <div class="status-indicator" id="seatStatusIndicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">자리 뽑기 중지됨</span>
+                    </div>
+
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="seatDrawToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="status-info" id="seatStatusInfo">
+                    현재 조장들은 자리를 배정받을 수 없습니다.
+                </div>
+            </section>
+
             <!-- 데이터 관리 섹션 -->
             <section class="admin-section">
                 <h2 class="section-title">🗑️ 데이터 관리</h2>
@@ -129,7 +151,11 @@
 
                 <div class="admin-buttons">
                     <button id="resetAssignmentsBtn" class="admin-button warning">
-                        🔄 배정 결과만 초기화
+                        🔄 조 배정 결과만 초기화
+                    </button>
+
+                    <button id="resetSeatsBtn" class="admin-button warning">
+                        🔄 자리 배정 결과만 초기화
                     </button>
 
                     <button id="resetAllBtn" class="admin-button danger">
@@ -140,7 +166,7 @@
 
             <!-- 실시간 통계 -->
             <section class="admin-section">
-                <h2 class="section-title">📊 실시간 통계</h2>
+                <h2 class="section-title">📊 조 배정 실시간 통계</h2>
 
                 <div class="stats-grid" id="statsGrid">
                     <div class="stat-card">
@@ -161,6 +187,32 @@
 
                 <div class="teams-detail" id="teamsDetail">
                     <!-- 조별 상세 정보가 여기 표시됩니다 -->
+                </div>
+            </section>
+
+            <!-- 자리 배정 통계 -->
+            <section class="admin-section">
+                <h2 class="section-title">🪑 자리 배정 실시간 통계</h2>
+
+                <div class="stats-grid" id="seatStatsGrid">
+                    <div class="stat-card">
+                        <div class="stat-label">배정된 자리</div>
+                        <div class="stat-value" id="assignedSeats">0</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">남은 자리</div>
+                        <div class="stat-value" id="remainingSeats">22</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">총 자리 수</div>
+                        <div class="stat-value">22</div>
+                    </div>
+                </div>
+
+                <div class="teams-detail" id="seatsDetail">
+                    <!-- 자리 배정 상세 정보가 여기 표시됩니다 -->
                 </div>
             </section>
         </main>
