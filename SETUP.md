@@ -8,17 +8,17 @@
 
 **위치**: `https://github.com/leessosso/sorting-hat/settings/secrets/actions`
 
-**추가할 Secrets**:
+**추가할 Secrets** (값은 Firebase Console에서 복사해서 넣으세요. **실제 키/값을 이 문서나 코드에 적지 마세요.**):
 
 | Secret 이름 | 값 | 어디서 찾나요? |
 |------------|-----|--------------|
-| `FIREBASE_API_KEY` | `AIzaSyBEh5AU90VBb_7aoexmvcumLWFDvzkC38Y` | Firebase Console → 프로젝트 설정 |
-| `FIREBASE_AUTH_DOMAIN` | `sorting-hat-9d69e.firebaseapp.com` | Firebase Console → 프로젝트 설정 |
-| `FIREBASE_DATABASE_URL` | `https://sorting-hat-9d69e-default-rtdb.asia-southeast1.firebasedatabase.app` | Firebase Console → Realtime Database |
-| `FIREBASE_PROJECT_ID` | `sorting-hat-9d69e` | Firebase Console → 프로젝트 설정 |
-| `FIREBASE_STORAGE_BUCKET` | `sorting-hat-9d69e.firebasestorage.app` | Firebase Console → 프로젝트 설정 |
-| `FIREBASE_MESSAGING_SENDER_ID` | `684009758588` | Firebase Console → 프로젝트 설정 |
-| `FIREBASE_APP_ID` | `1:684009758588:web:23c8cf406571125c860ef9` | Firebase Console → 프로젝트 설정 |
+| `FIREBASE_API_KEY` | *(Firebase Console에서 복사)* | Firebase Console → 프로젝트 설정 |
+| `FIREBASE_AUTH_DOMAIN` | *(예: `프로젝트ID.firebaseapp.com`)* | Firebase Console → 프로젝트 설정 |
+| `FIREBASE_DATABASE_URL` | *(예: `https://프로젝트ID-default-rtdb.리전.firebasedatabase.app`)* | Firebase Console → Realtime Database |
+| `FIREBASE_PROJECT_ID` | *(Firebase 프로젝트 ID)* | Firebase Console → 프로젝트 설정 |
+| `FIREBASE_STORAGE_BUCKET` | *(예: `프로젝트ID.firebasestorage.app`)* | Firebase Console → 프로젝트 설정 |
+| `FIREBASE_MESSAGING_SENDER_ID` | *(숫자 ID)* | Firebase Console → 프로젝트 설정 |
+| `FIREBASE_APP_ID` | *(예: `1:숫자:web:해시`)* | Firebase Console → 프로젝트 설정 |
 
 **설정 방법**:
 
