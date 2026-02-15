@@ -106,11 +106,23 @@
                 </div>
             </div>
 
-            <!-- 실시간 자리 현황판 -->
+            <!-- 실시간 자리 현황판: 배치도 + 그리드 전환 -->
             <section class="status-board">
                 <h3 class="board-title">🪑 자리 배정 현황</h3>
-                <div id="seatsList" class="seats-grid">
-                    <p class="loading-text">현황을 불러오는 중...</p>
+                <div class="seat-view-toggle">
+                    <button type="button" class="toggle-btn active" data-view="map" aria-pressed="true">배치도</button>
+                    <button type="button" class="toggle-btn" data-view="grid" aria-pressed="false">목록</button>
+                </div>
+                <div id="seatMapView" class="seat-map-wrap">
+                    <div class="seat-map-inner">
+                        <img src="assets/seat-map.png" alt="좌석 배치도" class="seat-map-img">
+                        <div id="seatsMapOverlay" class="seat-map-overlay" aria-hidden="false"></div>
+                    </div>
+                </div>
+                <div id="seatGridView" class="seat-grid-wrap hidden">
+                    <div id="seatsList" class="seats-grid">
+                        <p class="loading-text">현황을 불러오는 중...</p>
+                    </div>
                 </div>
             </section>
         </main>

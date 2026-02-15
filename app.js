@@ -967,30 +967,83 @@ function initSeatDrawApp() {
     database.ref('seats').on('value', updateSeatsStatus);
 }
 
-// 실시간 자리 현황판 업데이트
+// 자리배치도 이미지 위 좌석 위치 (left%, top%) - 배치도 레이아웃에 맞춤
+const SEAT_MAP_POSITIONS = {
+    1: { left: 20, top: 20 }, 2: { left: 34, top: 20 },
+    3: { left: 20, top: 28 }, 4: { left: 34, top: 28 },
+    5: { left: 11, top: 44 }, 6: { left: 11, top: 50 }, 7: { left: 11, top: 56 }, 8: { left: 11, top: 62 }, 9: { left: 11, top: 68 }, 10: { left: 11, top: 74 },
+    11: { left: 23, top: 44 }, 12: { left: 23, top: 50 }, 13: { left: 23, top: 56 }, 14: { left: 23, top: 62 }, 15: { left: 23, top: 68 }, 16: { left: 23, top: 74 },
+    17: { left: 17, top: 82 },
+    18: { left: 52, top: 54 }, 19: { left: 52, top: 60 }, 20: { left: 52, top: 66 }, 21: { left: 52, top: 72 }, 22: { left: 52, top: 78 }
+};
+
+// 실시간 자리 현황판 업데이트 (배치도 오버레이 + 그리드)
 function updateSeatsStatus() {
     const seatsList = document.getElementById('seatsList');
-    if (!seatsList) return;
+    const seatsMapOverlay = document.getElementById('seatsMapOverlay');
     
     database.ref('seats').once('value', (snapshot) => {
         const seatsData = snapshot.val() || {};
         
-        // 1~22번 자리 생성 (번호 + 뽑힌 사람 이름 표시)
-        const seatsHTML = [];
-        for (let i = 1; i <= 22; i++) {
-            const seat = seatsData[i];
-            const isAssigned = seat && seat.leader;
-            const nameText = isAssigned ? seat.leader : '-';
-            
-            seatsHTML.push(`
-                <div class="seat-card ${isAssigned ? 'assigned' : 'available'}">
-                    <div class="seat-number-display">${i}번</div>
-                    <div class="seat-leader-name" ${!isAssigned ? 'style="opacity: 0.5;"' : ''}>${nameText}</div>
-                </div>
-            `);
+        // 그리드 뷰: 1~22번 카드
+        if (seatsList) {
+            const seatsHTML = [];
+            for (let i = 1; i <= 22; i++) {
+                const seat = seatsData[i];
+                const isAssigned = seat && seat.leader;
+                const nameText = isAssigned ? seat.leader : '-';
+                seatsHTML.push(`
+                    <div class="seat-card ${isAssigned ? 'assigned' : 'available'}">
+                        <div class="seat-number-display">${i}번</div>
+                        <div class="seat-leader-name" ${!isAssigned ? 'style="opacity: 0.5;"' : ''}>${nameText}</div>
+                    </div>
+                `);
+            }
+            seatsList.innerHTML = seatsHTML.join('');
         }
         
-        seatsList.innerHTML = seatsHTML.join('');
+        // 배치도 오버레이: 이미지 위에 번호+이름 핀
+        if (seatsMapOverlay) {
+            const pinsHTML = [];
+            for (let i = 1; i <= 22; i++) {
+                const pos = SEAT_MAP_POSITIONS[i];
+                if (!pos) continue;
+                const seat = seatsData[i];
+                const isAssigned = seat && seat.leader;
+                const nameText = isAssigned ? seat.leader : '-';
+                pinsHTML.push(`
+                    <div class="seat-map-pin ${isAssigned ? 'assigned' : 'available'}" style="left:${pos.left}%;top:${pos.top}%" data-seat="${i}">
+                        <span class="pin-num">${i}번</span>
+                        <span class="pin-name">${nameText}</span>
+                    </div>
+                `);
+            }
+            seatsMapOverlay.innerHTML = pinsHTML.join('');
+        }
+    });
+}
+
+// 자리 현황 보기 전환 (배치도 / 목록)
+function initSeatViewToggle() {
+    const toggleBtns = document.querySelectorAll('.seat-view-toggle .toggle-btn');
+    const mapWrap = document.getElementById('seatMapView');
+    const gridWrap = document.getElementById('seatGridView');
+    if (!toggleBtns.length || !mapWrap || !gridWrap) return;
+    
+    toggleBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const view = btn.dataset.view;
+            toggleBtns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+            if (view === 'map') {
+                mapWrap.classList.remove('hidden');
+                gridWrap.classList.add('hidden');
+            } else {
+                mapWrap.classList.add('hidden');
+                gridWrap.classList.remove('hidden');
+            }
+        });
     });
 }
 
@@ -1020,6 +1073,7 @@ function initTabSwitching() {
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', () => {
     initTabSwitching();
+    initSeatViewToggle();
     initSeatDrawApp();
 });
 

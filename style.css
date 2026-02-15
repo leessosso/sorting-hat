@@ -989,6 +989,115 @@ input:checked + .toggle-slider:before {
     letter-spacing: 0.02em;
 }
 
+/* 자리 현황판: 배치도 뷰 */
+.seat-view-toggle {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.seat-view-toggle .toggle-btn {
+    padding: 8px 20px;
+    border: 2px solid var(--color-gold);
+    border-radius: 8px;
+    background: rgba(42, 42, 62, 0.6);
+    color: var(--color-parchment);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.seat-view-toggle .toggle-btn:hover {
+    background: rgba(62, 62, 82, 0.8);
+    border-color: var(--color-gold-light);
+}
+
+.seat-view-toggle .toggle-btn.active {
+    background: var(--color-gold);
+    color: var(--color-ink);
+    border-color: var(--color-gold);
+}
+
+.seat-map-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.seat-map-inner {
+    position: relative;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid var(--color-gold);
+    background: var(--color-ink);
+}
+
+.seat-map-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    vertical-align: top;
+}
+
+.seat-map-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.seat-map-overlay .seat-map-pin {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    min-width: 48px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    pointer-events: auto;
+}
+
+.seat-map-overlay .seat-map-pin.assigned {
+    background: rgba(46, 204, 113, 0.95);
+    color: var(--color-ink);
+    border: 2px solid #fff;
+}
+
+.seat-map-overlay .seat-map-pin.available {
+    background: rgba(255, 255, 255, 0.85);
+    color: var(--color-ink);
+    border: 2px solid var(--color-gold);
+}
+
+.seat-map-overlay .seat-map-pin .pin-num {
+    display: block;
+    font-size: 0.7em;
+    opacity: 0.9;
+}
+
+.seat-map-overlay .seat-map-pin .pin-name {
+    display: block;
+    font-size: 0.85em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 72px;
+}
+
+.seat-grid-wrap.hidden {
+    display: none;
+}
+
+.seat-map-wrap.hidden {
+    display: none;
+}
+
 /* 자리 현황판 그리드 */
 .seats-grid {
     display: grid;
