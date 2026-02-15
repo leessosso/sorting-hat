@@ -840,6 +840,7 @@ function initSeatDrawApp() {
     const seatDrawScreen = document.getElementById('seatDrawScreen');
     const seatResultScreen = document.getElementById('seatResultScreen');
     const seatNumber = document.getElementById('seatNumber');
+    const seatResultName = document.getElementById('seatResultName');
     const seatMessage = document.getElementById('seatMessage');
     const seatConfetti = document.getElementById('seatConfetti');
     
@@ -939,11 +940,15 @@ function initSeatDrawApp() {
         seatStatusMessage.className = `status-message ${type}`;
     }
     
-    // 결과 화면 표시 함수
+    // 결과 화면 표시 함수 (번호 + 뽑힌 사람 이름)
     function showSeatResult(data) {
         seatThinkingText.classList.add('hidden');
         
         seatNumber.textContent = `${data.seatNumber}번`;
+        if (seatResultName) {
+            seatResultName.textContent = data.name ? `${data.name}님` : '';
+            seatResultName.style.display = data.name ? '' : 'none';
+        }
         seatMessage.textContent = getRandomElement(SEAT_SUCCESS_MESSAGES);
         
         // 화면 전환
@@ -970,16 +975,17 @@ function updateSeatsStatus() {
     database.ref('seats').once('value', (snapshot) => {
         const seatsData = snapshot.val() || {};
         
-        // 1~22번 자리 생성
+        // 1~22번 자리 생성 (번호 + 뽑힌 사람 이름 표시)
         const seatsHTML = [];
         for (let i = 1; i <= 22; i++) {
             const seat = seatsData[i];
             const isAssigned = seat && seat.leader;
+            const nameText = isAssigned ? seat.leader : '-';
             
             seatsHTML.push(`
                 <div class="seat-card ${isAssigned ? 'assigned' : 'available'}">
-                    <div class="seat-number-display">${i}</div>
-                    ${isAssigned ? `<div class="seat-leader-name">${seat.leader}</div>` : '<div class="seat-leader-name" style="opacity: 0.5;">-</div>'}
+                    <div class="seat-number-display">${i}번</div>
+                    <div class="seat-leader-name" ${!isAssigned ? 'style="opacity: 0.5;"' : ''}>${nameText}</div>
                 </div>
             `);
         }

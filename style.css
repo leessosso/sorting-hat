@@ -980,6 +980,15 @@ input:checked + .toggle-slider:before {
     margin: 20px 0;
 }
 
+/* 자리 뽑기 결과 화면 - 뽑힌 사람 이름 */
+.result-seat-name {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--color-parchment);
+    margin: 8px 0 16px;
+    letter-spacing: 0.02em;
+}
+
 /* 자리 현황판 그리드 */
 .seats-grid {
     display: grid;
@@ -1025,10 +1034,15 @@ input:checked + .toggle-slider:before {
 }
 
 .seat-leader-name {
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: var(--color-parchment);
-    font-weight: 500;
-    margin-top: 5px;
+    font-weight: 600;
+    margin-top: 6px;
+    min-height: 1.4em;
+}
+
+.seat-card.assigned .seat-leader-name {
+    color: var(--color-gold-light);
 }
 
 @media (max-width: 768px) {
