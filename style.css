@@ -1195,11 +1195,12 @@ input:checked + .toggle-slider:before {
     }
 
     .seat-top-grid {
-        grid-template-columns: repeat(2, minmax(72px, 1fr));
+        grid-template-columns: repeat(4, minmax(60px, 1fr));
     }
 
+    /* 갤럭시 울트라 등 좁은 폭에서도 3열 유지 (오른쪽 한 줄이 아래로 내려가지 않음) */
     .seat-main-grid {
-        grid-template-columns: repeat(2, minmax(72px, 1fr));
+        grid-template-columns: minmax(60px, 1fr) minmax(60px, 1fr) minmax(60px, 1fr);
     }
 
     .seat-slot {
