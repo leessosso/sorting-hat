@@ -1024,6 +1024,11 @@ input:checked + .toggle-slider:before {
     margin: 0 auto;
 }
 
+/* 관리자: 배치도와 상세 결과 목록 간격 */
+#adminSeatMapView + #seatsDetail {
+    margin-top: 16px;
+}
+
 .seat-layout {
     width: 100%;
     background: #e4e4e4;
