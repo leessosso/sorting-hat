@@ -1043,13 +1043,22 @@ input:checked + .toggle-slider:before {
     border-radius: 2px;
 }
 
+/* 상단 1~4번: 왼쪽 빈 칸 2열 + 오른쪽 2열(메인 그리드 한 열과 동일 너비) */
 .seat-top-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(80px, 1fr));
+    grid-template-columns: 1fr 1fr 2fr 2fr;
     gap: 10px;
-    max-width: 620px;
-    margin: 0 auto;
 }
+
+/* 1~4번 자리를 오른쪽 두 칸에 배치 (빈 칸은 왼쪽) */
+.seat-top-grid .seat-slot:nth-child(1) { grid-column: 3; }
+.seat-top-grid .seat-slot:nth-child(2) { grid-column: 4; }
+.seat-top-grid .seat-slot:nth-child(3) { grid-column: 1; }
+.seat-top-grid .seat-slot:nth-child(4) { grid-column: 2; }
+.seat-top-grid .seat-slot:nth-child(5) { grid-column: 3; }
+.seat-top-grid .seat-slot:nth-child(6) { grid-column: 4; }
+.seat-top-grid .seat-slot:nth-child(7) { grid-column: 1; }
+.seat-top-grid .seat-slot:nth-child(8) { grid-column: 2; }
 
 .seat-aisle {
     text-align: center;
@@ -1195,7 +1204,7 @@ input:checked + .toggle-slider:before {
     }
 
     .seat-top-grid {
-        grid-template-columns: repeat(4, minmax(60px, 1fr));
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(60px, 2fr) minmax(60px, 2fr);
     }
 
     /* 갤럭시 울트라 등 좁은 폭에서도 3열 유지 (오른쪽 한 줄이 아래로 내려가지 않음) */

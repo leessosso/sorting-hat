@@ -673,6 +673,9 @@ function initAdminApp() {
                 </div>
             `).join('');
         }
+
+        // 관리자 화면 자리 배치도 실시간 반영
+        updateSeatsStatus();
     });
 
     // 실시간 통계 업데이트
