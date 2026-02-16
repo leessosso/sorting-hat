@@ -1057,13 +1057,11 @@ input:checked + .toggle-slider:before {
 .seat-top-grid .seat-slot:nth-child(4) { grid-column: 2; }
 .seat-top-grid .seat-slot:nth-child(5) { grid-column: 3; }
 .seat-top-grid .seat-slot:nth-child(6) { grid-column: 4; }
-.seat-top-grid .seat-slot:nth-child(7) { grid-column: 1; }
-.seat-top-grid .seat-slot:nth-child(8) { grid-column: 2; }
 
 .seat-aisle {
     text-align: center;
     font-weight: 800;
-    margin: 14px 0 16px;
+    margin: 8px 0 12px;
 }
 
 .seat-main-grid {
