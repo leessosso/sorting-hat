@@ -967,20 +967,10 @@ function initSeatDrawApp() {
     database.ref('seats').on('value', updateSeatsStatus);
 }
 
-// 자리배치도 이미지 위 좌석 위치 (left%, top%) - 배치도 레이아웃에 맞춤
-const SEAT_MAP_POSITIONS = {
-    1: { left: 20, top: 20 }, 2: { left: 34, top: 20 },
-    3: { left: 20, top: 28 }, 4: { left: 34, top: 28 },
-    5: { left: 11, top: 44 }, 6: { left: 11, top: 50 }, 7: { left: 11, top: 56 }, 8: { left: 11, top: 62 }, 9: { left: 11, top: 68 }, 10: { left: 11, top: 74 },
-    11: { left: 23, top: 44 }, 12: { left: 23, top: 50 }, 13: { left: 23, top: 56 }, 14: { left: 23, top: 62 }, 15: { left: 23, top: 68 }, 16: { left: 23, top: 74 },
-    17: { left: 17, top: 82 },
-    18: { left: 52, top: 54 }, 19: { left: 52, top: 60 }, 20: { left: 52, top: 66 }, 21: { left: 52, top: 72 }, 22: { left: 52, top: 78 }
-};
-
-// 실시간 자리 현황판 업데이트 (배치도 오버레이 + 그리드)
+// 실시간 자리 현황판 업데이트 (배치도 + 그리드)
 function updateSeatsStatus() {
     const seatsList = document.getElementById('seatsList');
-    const seatsMapOverlay = document.getElementById('seatsMapOverlay');
+    const seatSlots = document.querySelectorAll('.seat-slot-numbered[data-seat-number]');
     
     database.ref('seats').once('value', (snapshot) => {
         const seatsData = snapshot.val() || {};
@@ -1002,23 +992,21 @@ function updateSeatsStatus() {
             seatsList.innerHTML = seatsHTML.join('');
         }
         
-        // 배치도 오버레이: 이미지 위에 번호+이름 핀
-        if (seatsMapOverlay) {
-            const pinsHTML = [];
-            for (let i = 1; i <= 22; i++) {
-                const pos = SEAT_MAP_POSITIONS[i];
-                if (!pos) continue;
-                const seat = seatsData[i];
+        // 배치도 뷰: 번호 박스 내부 이름 업데이트
+        if (seatSlots.length > 0) {
+            seatSlots.forEach(slot => {
+                const seatNumber = slot.dataset.seatNumber;
+                const seat = seatsData[seatNumber];
                 const isAssigned = seat && seat.leader;
                 const nameText = isAssigned ? seat.leader : '-';
-                pinsHTML.push(`
-                    <div class="seat-map-pin ${isAssigned ? 'assigned' : 'available'}" style="left:${pos.left}%;top:${pos.top}%" data-seat="${i}">
-                        <span class="pin-num">${i}번</span>
-                        <span class="pin-name">${nameText}</span>
-                    </div>
-                `);
-            }
-            seatsMapOverlay.innerHTML = pinsHTML.join('');
+                const nameEl = slot.querySelector('.seat-slot-name');
+
+                slot.classList.toggle('assigned', !!isAssigned);
+                slot.classList.toggle('available', !isAssigned);
+                if (nameEl) {
+                    nameEl.textContent = nameText;
+                }
+            });
         }
     });
 }
