@@ -535,6 +535,43 @@ body::before {
     line-height: 1.5;
 }
 
+.restriction-config {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-input-label {
+    text-align: left;
+    font-size: 1rem;
+}
+
+.admin-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px;
+    border: 2px solid var(--color-gold);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-parchment);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.admin-textarea:focus {
+    outline: none;
+    box-shadow: var(--shadow-gold);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.config-help-text {
+    color: var(--color-parchment);
+    opacity: 0.8;
+    font-size: 0.9rem;
+}
+
 /* 임원 그리드 */
 .leaders-grid {
     display: grid;

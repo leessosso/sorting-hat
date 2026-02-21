@@ -144,6 +144,20 @@
                 </div>
             </section>
 
+            <!-- 자리 뽑기 제한 설정 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">🚫 자리 뽑기 제한 설정</h2>
+                <p class="section-description">여기에 입력한 이름은 자리 뽑기 시 1~4번 자리에 배정되지 않습니다.</p>
+
+                <div class="restriction-config">
+                    <label for="seatRestrictedNamesInput" class="input-label admin-input-label">제외 명단</label>
+                    <textarea id="seatRestrictedNamesInput" class="admin-textarea"
+                        placeholder="예: 상백이네, 승석이네, 광림이네"></textarea>
+                    <p class="config-help-text">쉼표(,) 또는 줄바꿈으로 여러 이름을 입력할 수 있습니다.</p>
+                    <button id="saveSeatRestrictionsBtn" class="admin-button primary">💾 제한 명단 저장</button>
+                </div>
+            </section>
+
             <!-- 데이터 관리 섹션 -->
             <section class="admin-section">
                 <h2 class="section-title">🗑️ 데이터 관리</h2>

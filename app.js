@@ -49,6 +49,8 @@ const SUCCESS_MESSAGES = [
     "완벽한 배정입니다! 함께 성장하세요."
 ];
 
+const TOP_SEAT_NUMBERS = [1, 2, 3, 4];
+
 // ========================================
 // 유틸리티 함수
 // ========================================
@@ -83,6 +85,19 @@ function clearFromSessionStorage(key) {
     } catch (error) {
         console.error('SessionStorage clear error:', error);
     }
+}
+
+function parseSeatRestrictedNames(rawValue) {
+    if (!rawValue || typeof rawValue !== 'string') {
+        return [];
+    }
+
+    return [...new Set(
+        rawValue
+            .split(/[\n,]/)
+            .map(name => name.trim())
+            .filter(Boolean)
+    )];
 }
 
 // ========================================
@@ -574,7 +589,8 @@ function initAdminApp() {
             await database.ref('seats').remove();
             await database.ref('config').set({
                 sortingEnabled: false,
-                seatDrawEnabled: false
+                seatDrawEnabled: false,
+                seatTopRestrictedNames: []
             });
 
             alert('전체 데이터가 초기화되었습니다.');
@@ -593,6 +609,8 @@ function initAdminApp() {
     const assignedSeats = document.getElementById('assignedSeats');
     const remainingSeats = document.getElementById('remainingSeats');
     const seatsDetail = document.getElementById('seatsDetail');
+    const seatRestrictedNamesInput = document.getElementById('seatRestrictedNamesInput');
+    const saveSeatRestrictionsBtn = document.getElementById('saveSeatRestrictionsBtn');
 
     // 자리 뽑기 상태 토글
     database.ref('config/seatDrawEnabled').on('value', (snapshot) => {
@@ -623,6 +641,37 @@ function initAdminApp() {
             seatDrawToggle.checked = !enabled;
         }
     });
+
+    // 자리 뽑기 1~4번 제한 명단 불러오기
+    database.ref('config/seatTopRestrictedNames').on('value', (snapshot) => {
+        if (!seatRestrictedNamesInput) return;
+        const names = snapshot.val() || [];
+        if (Array.isArray(names)) {
+            seatRestrictedNamesInput.value = names.join(', ');
+        } else {
+            seatRestrictedNamesInput.value = '';
+        }
+    });
+
+    // 자리 뽑기 1~4번 제한 명단 저장
+    if (saveSeatRestrictionsBtn && seatRestrictedNamesInput) {
+        saveSeatRestrictionsBtn.addEventListener('click', async () => {
+            const restrictedNames = parseSeatRestrictedNames(seatRestrictedNamesInput.value);
+
+            try {
+                saveSeatRestrictionsBtn.disabled = true;
+                saveSeatRestrictionsBtn.textContent = '저장 중...';
+                await database.ref('config/seatTopRestrictedNames').set(restrictedNames);
+                alert(`제한 명단이 저장되었습니다. (${restrictedNames.length}명)`);
+            } catch (error) {
+                console.error('Save seat restrictions error:', error);
+                alert('제한 명단 저장 중 오류가 발생했습니다: ' + error.message);
+            } finally {
+                saveSeatRestrictionsBtn.disabled = false;
+                saveSeatRestrictionsBtn.textContent = '💾 제한 명단 저장';
+            }
+        });
+    }
 
     // 자리 배정 결과만 초기화
     resetSeatsBtn.addEventListener('click', async () => {
@@ -766,6 +815,10 @@ async function assignSeat(leaderName) {
         // 1. 자리 배정이 활성화되어 있는지 확인
         const configSnapshot = await configRef.once('value');
         const config = configSnapshot.val() || {};
+        const restrictedNames = Array.isArray(config.seatTopRestrictedNames)
+            ? config.seatTopRestrictedNames
+            : [];
+        const isTopSeatRestricted = restrictedNames.includes(leaderName);
         
         if (!config.seatDrawEnabled) {
             throw new Error('현재 자리 뽑기가 중지되어 있습니다. 관리자에게 문의하세요.');
@@ -802,8 +855,17 @@ async function assignSeat(leaderName) {
             throw new Error('모든 자리가 배정되었습니다!');
         }
         
-        // 4. 랜덤으로 자리 선택
-        const selectedNumber = getRandomElement(availableNumbers);
+        // 4. 랜덤으로 자리 선택 (필요 시 1~4번 제외)
+        let candidateNumbers = availableNumbers;
+        if (isTopSeatRestricted) {
+            const nonTopNumbers = availableNumbers.filter(n => !TOP_SEAT_NUMBERS.includes(n));
+            if (nonTopNumbers.length === 0) {
+                throw new Error('현재 남은 자리가 1~4번뿐이라 배정할 수 없습니다. 관리자에게 문의하세요.');
+            }
+            candidateNumbers = nonTopNumbers;
+        }
+
+        const selectedNumber = getRandomElement(candidateNumbers);
         
         // 5. Transaction으로 동시성 제어
         const seatRef = database.ref(`seats/${selectedNumber}`);
