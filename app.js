@@ -101,7 +101,7 @@ function parseSeatRestrictedNames(rawValue) {
 }
 
 // ========================================
-// 핵심 배정 로직 (min & min+1 알고리즘)
+// 핵심 배정 로직 (최소 인원 조 우선 알고리즘)
 // ========================================
 
 async function assignToTeam(userName) {
@@ -153,11 +153,9 @@ async function assignToTeam(userName) {
             }
         }
 
-        // 3. min & min+1 로직으로 후보 조 선택
+        // 3. 최소 인원(min) 조만 후보로 선택 (1명 차이도 제외)
         const minCount = Math.min(...activeTeams.map(t => t.count));
-        const candidateTeams = activeTeams.filter(
-            t => t.count === minCount || t.count === minCount + 1
-        );
+        const candidateTeams = activeTeams.filter(t => t.count === minCount);
 
         const selectedTeam = getRandomElement(candidateTeams);
 
