@@ -447,12 +447,15 @@ function initAdminApp() {
     const avgMembers = document.getElementById('avgMembers');
     const teamsDetail = document.getElementById('teamsDetail');
 
-    // 임원 선택 카운트 업데이트
-    leadersGrid.addEventListener('change', () => {
+    function updateSelectedLeaderCount() {
         const checked = leadersGrid.querySelectorAll('.leader-input:checked').length;
         selectedCount.textContent = checked;
         teamCount.textContent = checked;
-    });
+    }
+
+    // 임원 선택 카운트 업데이트
+    leadersGrid.addEventListener('change', updateSelectedLeaderCount);
+    updateSelectedLeaderCount();
 
     // 조 구성 적용
     applyLeadersBtn.addEventListener('click', async () => {
@@ -731,6 +734,13 @@ function initAdminApp() {
         const teams = Object.entries(teamsData)
             .filter(([_, team]) => team.active)
             .map(([id, team]) => ({ id, ...team }));
+
+        // 새로고침 시에도 현재 활성 조장 선택 상태가 유지되도록 체크박스를 동기화
+        const activeLeaderNames = new Set(teams.map(team => team.leader));
+        leadersGrid.querySelectorAll('.leader-input').forEach((input) => {
+            input.checked = activeLeaderNames.has(input.dataset.leader);
+        });
+        updateSelectedLeaderCount();
 
         const active = teams.length;
         const total = teams.reduce((sum, team) => sum + (team.count || 0), 0);
