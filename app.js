@@ -132,7 +132,7 @@ async function assignToTeam(userName) {
             }));
 
         if (activeTeams.length === 0) {
-            throw new Error('활성화된 조가 없습니다. 관리자에게 문의하세요.');
+            throw new Error('활성화된 팀이 없습니다. 관리자에게 문의하세요.');
         }
 
         // 2-1. 이미 배정된 사용자인지 전체 조에서 확인 (중복 배정 방지)
