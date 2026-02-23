@@ -50,6 +50,7 @@ const SUCCESS_MESSAGES = [
 ];
 
 const TOP_SEAT_NUMBERS = [1, 2, 3, 4];
+const KIM_GWANGLIM_RESTRICTED_NAMES = ['배유림', '유림', '유림이네', '유림이'];
 
 // ========================================
 // 유틸리티 함수
@@ -98,6 +99,13 @@ function parseSeatRestrictedNames(rawValue) {
             .map(name => name.trim())
             .filter(Boolean)
     )];
+}
+
+function normalizeName(value) {
+    return String(value || '')
+        .trim()
+        .replace(/\s+/g, '')
+        .toLowerCase();
 }
 
 // ========================================
@@ -153,13 +161,26 @@ async function assignToTeam(userName) {
             }
         }
 
-        // 3. 최소 인원(min) 조만 후보로 선택 (1명 차이도 제외)
-        const minCount = Math.min(...activeTeams.map(t => t.count));
-        const candidateTeams = activeTeams.filter(t => t.count === minCount);
+        // 3. 이름 기반 조별 제한 적용 (김광림 조 제외)
+        const normalizedUserName = normalizeName(userName);
+        const isKimTeamRestrictedUser = KIM_GWANGLIM_RESTRICTED_NAMES
+            .some(name => normalizeName(name) === normalizedUserName);
+
+        const eligibleTeams = isKimTeamRestrictedUser
+            ? activeTeams.filter(team => team.leader !== '김광림')
+            : activeTeams;
+
+        if (eligibleTeams.length === 0) {
+            throw new Error('현재 배정 가능한 조가 없습니다. 관리자에게 문의하세요.');
+        }
+
+        // 4. 최소 인원(min) 조만 후보로 선택 (1명 차이도 제외)
+        const minCount = Math.min(...eligibleTeams.map(t => t.count));
+        const candidateTeams = eligibleTeams.filter(t => t.count === minCount);
 
         const selectedTeam = getRandomElement(candidateTeams);
 
-        // 4. Transaction을 사용하여 동시성 제어
+        // 5. Transaction을 사용하여 동시성 제어
         const teamRef = database.ref(`teams/${selectedTeam.id}`);
 
         let assignedTeam = null;
@@ -183,7 +204,7 @@ async function assignToTeam(userName) {
             return currentTeam;
         });
 
-        // 5. 최종 팀 정보 가져오기
+        // 6. 최종 팀 정보 가져오기
         const finalSnapshot = await teamRef.once('value');
         assignedTeam = finalSnapshot.val();
 
