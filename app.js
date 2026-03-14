@@ -50,7 +50,10 @@ const SUCCESS_MESSAGES = [
 ];
 
 const TOP_SEAT_NUMBERS = [1, 2, 3, 4];
-const KIM_GWANGLIM_RESTRICTED_NAMES = ['배유림', '유림', '유림이네', '유림이'];
+const TEAM_LEADER_RESTRICTED_NAMES = {
+    '김광림': ['배유림', '유림', '유림이네', '유림이'],
+    '이혜미': ['언이네', '장언', '장 언', '언']
+};
 
 // ========================================
 // 유틸리티 함수
@@ -161,13 +164,18 @@ async function assignToTeam(userName) {
             }
         }
 
-        // 3. 이름 기반 조별 제한 적용 (김광림 조 제외)
+        // 3. 이름 기반 조별 제한 적용
         const normalizedUserName = normalizeName(userName);
-        const isKimTeamRestrictedUser = KIM_GWANGLIM_RESTRICTED_NAMES
-            .some(name => normalizeName(name) === normalizedUserName);
+        const restrictedLeaders = new Set(
+            Object.entries(TEAM_LEADER_RESTRICTED_NAMES)
+                .filter(([_, restrictedNames]) =>
+                    restrictedNames.some(name => normalizeName(name) === normalizedUserName)
+                )
+                .map(([leader]) => leader)
+        );
 
-        const eligibleTeams = isKimTeamRestrictedUser
-            ? activeTeams.filter(team => team.leader !== '김광림')
+        const eligibleTeams = restrictedLeaders.size > 0
+            ? activeTeams.filter(team => !restrictedLeaders.has(team.leader))
             : activeTeams;
 
         if (eligibleTeams.length === 0) {
