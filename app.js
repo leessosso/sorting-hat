@@ -984,7 +984,7 @@ function initSeatDrawApp() {
         const name = seatNameInput.value.trim();
         
         if (!name) {
-            showSeatStatusMessage('이름을 입력해주세요!', 'error');
+            showSeatStatusMessage("이름을 '~네'로 입력해주세요!", 'error');
             return;
         }
         
@@ -1071,11 +1071,18 @@ function initSeatDrawApp() {
 
 // 실시간 자리 현황판 업데이트 (배치도 + 그리드)
 function updateSeatsStatus() {
+    const seatStatusBoard = document.getElementById('seatStatusBoard');
     const seatsList = document.getElementById('seatsList');
     const seatSlots = document.querySelectorAll('.seat-slot-numbered[data-seat-number]');
     
     database.ref('seats').once('value', (snapshot) => {
         const seatsData = snapshot.val() || {};
+        const assignedCount = Object.values(seatsData).filter(seat => seat && seat.leader).length;
+        const isAllSeatsAssigned = assignedCount >= 22;
+
+        if (seatStatusBoard) {
+            seatStatusBoard.classList.toggle('hidden', !isAllSeatsAssigned);
+        }
         
         // 그리드 뷰: 1~22번 카드
         if (seatsList) {

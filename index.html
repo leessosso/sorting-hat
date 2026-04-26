@@ -78,8 +78,8 @@
                 <div class="seat-icon">🪑</div>
 
                 <div class="input-section">
-                    <label for="seatNameInput" class="input-label">가장 이름</label>
-                    <input type="text" id="seatNameInput" class="name-input" placeholder="이름을 입력하세요"
+                    <label for="seatNameInput" class="input-label">이름을 '~네'로 입력해주세요</label>
+                    <input type="text" id="seatNameInput" class="name-input" placeholder="예: 승석이네"
                         maxlength="20">
                 </div>
 
@@ -107,7 +107,7 @@
             </div>
 
             <!-- 실시간 자리 현황판: 배치도 + 그리드 전환 -->
-            <section class="status-board">
+            <section id="seatStatusBoard" class="status-board hidden">
                 <h3 class="board-title">🪑 자리 배정 현황</h3>
                 <div class="seat-view-toggle">
                     <button type="button" class="toggle-btn active" data-view="map" aria-pressed="true">배치도</button>
