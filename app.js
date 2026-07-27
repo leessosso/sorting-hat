@@ -816,7 +816,7 @@ function initAdminApp() {
 
     // 전체 데이터 초기화
     resetAllBtn.addEventListener('click', async () => {
-        if (!confirm('⚠️ 경고: 모든 조와 배정 데이터를 삭제합니다. 계속하시겠습니까? (설정된 명단은 유지됩니다)')) {
+        if (!confirm('⚠️ 경고: 모든 조와 배정 데이터를 삭제합니다. 계속하시겠습니까? (조 배정/자리 뽑기 명단 및 예외 설정은 유지됩니다)')) {
             return;
         }
 
@@ -852,6 +852,9 @@ function initAdminApp() {
     const memberListInput = document.getElementById('memberListInput');
     const saveMemberListBtn = document.getElementById('saveMemberListBtn');
     const deleteMemberListBtn = document.getElementById('deleteMemberListBtn');
+    const seatMemberListInput = document.getElementById('seatMemberListInput');
+    const saveSeatMemberListBtn = document.getElementById('saveSeatMemberListBtn');
+    const deleteSeatMemberListBtn = document.getElementById('deleteSeatMemberListBtn');
 
     // 조 배정 명단 불러오기
     database.ref('config/memberList').on('value', (snapshot) => {
@@ -903,6 +906,60 @@ function initAdminApp() {
             } finally {
                 deleteMemberListBtn.disabled = false;
                 deleteMemberListBtn.textContent = '🗑️ 명단 삭제하기';
+            }
+        });
+    }
+
+    // 자리 뽑기 명단 불러오기
+    database.ref('config/seatMemberList').on('value', (snapshot) => {
+        if (!seatMemberListInput) return;
+        const names = snapshot.val() || [];
+        if (Array.isArray(names)) {
+            seatMemberListInput.value = names.join('\n');
+        } else {
+            seatMemberListInput.value = '';
+        }
+    });
+
+    // 자리 뽑기 명단 저장하기
+    if (saveSeatMemberListBtn && seatMemberListInput) {
+        saveSeatMemberListBtn.addEventListener('click', async () => {
+            const seatMemberList = parseMemberList(seatMemberListInput.value);
+
+            try {
+                saveSeatMemberListBtn.disabled = true;
+                saveSeatMemberListBtn.textContent = '저장 중...';
+                await database.ref('config/seatMemberList').set(seatMemberList);
+                alert(`자리 뽑기 명단이 저장되었습니다. (총 ${seatMemberList.length}명)`);
+            } catch (error) {
+                console.error('Save seat member list error:', error);
+                alert('명단 저장 중 오류가 발생했습니다: ' + error.message);
+            } finally {
+                saveSeatMemberListBtn.disabled = false;
+                saveSeatMemberListBtn.textContent = '💾 명단 저장하기';
+            }
+        });
+    }
+
+    // 자리 뽑기 명단 삭제하기
+    if (deleteSeatMemberListBtn) {
+        deleteSeatMemberListBtn.addEventListener('click', async () => {
+            if (!confirm('정말로 저장된 전체 자리 뽑기 명단을 삭제하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                deleteSeatMemberListBtn.disabled = true;
+                deleteSeatMemberListBtn.textContent = '삭제 중...';
+                await database.ref('config/seatMemberList').remove();
+                if (seatMemberListInput) seatMemberListInput.value = '';
+                alert('자리 뽑기 명단이 삭제되었습니다.');
+            } catch (error) {
+                console.error('Delete seat member list error:', error);
+                alert('명단 삭제 중 오류가 발생했습니다: ' + error.message);
+            } finally {
+                deleteSeatMemberListBtn.disabled = false;
+                deleteSeatMemberListBtn.textContent = '🗑️ 명단 삭제하기';
             }
         });
     }
@@ -1089,7 +1146,7 @@ function initAdminApp() {
     database.ref('seats').on('value', (snapshot) => {
         const seatsData = snapshot.val() || {};
         const assigned = Object.keys(seatsData).length;
-        const remaining = 22 - assigned;
+        const remaining = 24 - assigned;
 
         assignedSeats.textContent = assigned;
         remainingSeats.textContent = remaining;
@@ -1221,7 +1278,21 @@ async function assignSeat(leaderName) {
         const restrictedNames = Array.isArray(config.seatTopRestrictedNames)
             ? config.seatTopRestrictedNames
             : [];
-        const isTopSeatRestricted = restrictedNames.includes(leaderName);
+
+        // 1-1. 명단 세팅이 되어 있는 경우, 명단 등록 여부 확인
+        const seatMemberList = Array.isArray(config.seatMemberList) ? config.seatMemberList : [];
+        let canonicalName = leaderName.trim();
+        if (seatMemberList.length > 0) {
+            const matchedName = seatMemberList.find(m => normalizeName(m) === normalizeName(leaderName));
+            if (!matchedName) {
+                throw new Error('등록된 명단에 없는 이름입니다. 목록에서 이름을 선택해 주세요.');
+            }
+            canonicalName = matchedName;
+        }
+
+        const isTopSeatRestricted = restrictedNames.some(
+            name => normalizeName(name) === normalizeName(canonicalName)
+        );
         
         if (!config.seatDrawEnabled) {
             throw new Error('현재 자리 뽑기가 중지되어 있습니다. 관리자에게 문의하세요.');
@@ -1233,7 +1304,7 @@ async function assignSeat(leaderName) {
         
         // 2-1. 이미 배정받은 사람인지 확인
         const existingAssignment = Object.entries(seatsData).find(
-            ([_, seat]) => seat.leader === leaderName
+            ([_, seat]) => normalizeName(seat.leader) === normalizeName(canonicalName)
         );
         
         if (existingAssignment) {
@@ -1245,10 +1316,10 @@ async function assignSeat(leaderName) {
             };
         }
         
-        // 3. 사용 가능한 자리 번호 찾기 (1~22)
+        // 3. 사용 가능한 자리 번호 찾기 (1~24)
         const assignedNumbers = Object.keys(seatsData).map(n => parseInt(n));
         const availableNumbers = [];
-        for (let i = 1; i <= 22; i++) {
+        for (let i = 1; i <= 24; i++) {
             if (!assignedNumbers.includes(i)) {
                 availableNumbers.push(i);
             }
@@ -1280,14 +1351,14 @@ async function assignSeat(leaderName) {
             }
             
             return {
-                leader: leaderName,
+                leader: canonicalName,
                 assignedAt: Date.now()
             };
         });
         
         return {
             seatNumber: selectedNumber,
-            leader: leaderName,
+            leader: canonicalName,
             alreadyAssigned: false
         };
         
@@ -1302,6 +1373,7 @@ function initSeatDrawApp() {
     console.log('Initializing seat draw app...');
     
     const seatNameInput = document.getElementById('seatNameInput');
+    const seatNameDropdown = document.getElementById('seatNameDropdown');
     const seatDrawButton = document.getElementById('seatDrawButton');
     const seatThinkingText = document.getElementById('seatThinkingText');
     const seatStatusMessage = document.getElementById('seatStatusMessage');
@@ -1311,6 +1383,90 @@ function initSeatDrawApp() {
     const seatResultName = document.getElementById('seatResultName');
     const seatMessage = document.getElementById('seatMessage');
     const seatConfetti = document.getElementById('seatConfetti');
+
+    let currentSeatMemberList = [];
+    let assignedSeatNameSet = new Set();
+
+    function renderSeatDropdown(filterKeyword = '') {
+        if (!seatNameDropdown) return;
+
+        const keyword = normalizeName(filterKeyword);
+        const filtered = currentSeatMemberList.filter(name => {
+            if (!keyword) return true;
+            return normalizeName(name).includes(keyword);
+        });
+
+        if (filtered.length === 0) {
+            seatNameDropdown.innerHTML = '<div class="dropdown-empty">일치하는 이름이 없습니다</div>';
+            seatNameDropdown.classList.remove('hidden');
+            return;
+        }
+
+        seatNameDropdown.innerHTML = filtered.map(name => {
+            const isAssigned = assignedSeatNameSet.has(normalizeName(name));
+            return `
+                <div class="dropdown-item ${isAssigned ? 'assigned' : ''}" data-name="${name}">
+                    <span>${name}</span>
+                    ${isAssigned ? '<span class="badge-assigned">배정완료</span>' : ''}
+                </div>
+            `;
+        }).join('');
+
+        seatNameDropdown.classList.remove('hidden');
+    }
+
+    database.ref('config/seatMemberList').on('value', (snapshot) => {
+        currentSeatMemberList = snapshot.val() || [];
+    });
+
+    database.ref('seats').on('value', (snapshot) => {
+        const seatsData = snapshot.val() || {};
+        const assigned = new Set();
+        Object.values(seatsData).forEach(seat => {
+            if (seat && seat.leader) {
+                assigned.add(normalizeName(seat.leader));
+            }
+        });
+        assignedSeatNameSet = assigned;
+        if (seatNameDropdown && !seatNameDropdown.classList.contains('hidden')) {
+            renderSeatDropdown(seatNameInput ? seatNameInput.value : '');
+        }
+    });
+
+    if (seatNameInput && seatNameDropdown) {
+        seatNameInput.addEventListener('focus', () => {
+            if (currentSeatMemberList.length > 0) {
+                renderSeatDropdown(seatNameInput.value);
+            }
+        });
+
+        seatNameInput.addEventListener('input', () => {
+            if (currentSeatMemberList.length > 0) {
+                renderSeatDropdown(seatNameInput.value);
+            }
+        });
+
+        seatNameDropdown.addEventListener('click', (e) => {
+            const item = e.target.closest('.dropdown-item');
+            if (!item) return;
+
+            if (item.classList.contains('assigned')) {
+                showSeatStatusMessage('이미 자리 배정이 완료된 이름입니다!', 'error');
+                return;
+            }
+
+            seatNameInput.value = item.dataset.name;
+            seatNameDropdown.classList.add('hidden');
+            seatStatusMessage.textContent = '';
+            seatStatusMessage.className = 'status-message';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-dropdown-wrapper')) {
+                seatNameDropdown.classList.add('hidden');
+            }
+        });
+    }
     
     // SessionStorage에서 저장된 자리 배정 확인 및 검증
     const savedSeat = getFromSessionStorage('userSeat');
@@ -1329,7 +1485,7 @@ function initSeatDrawApp() {
             // 저장된 자리 번호에 해당 사용자가 있는지 확인
             const seatInfo = seatsData[savedData.seatNumber];
             
-            if (seatInfo && seatInfo.leader === savedData.name) {
+            if (seatInfo && normalizeName(seatInfo.leader) === normalizeName(savedData.name)) {
                 // 유효한 배정이면 결과 표시
                 showSeatResult(savedData);
             } else {
@@ -1350,7 +1506,7 @@ function initSeatDrawApp() {
         const name = seatNameInput.value.trim();
         
         if (!name) {
-            showSeatStatusMessage("이름을 '~네'로 입력해주세요!", 'error');
+            showSeatStatusMessage('이름을 입력하거나 검색해서 선택해주세요!', 'error');
             return;
         }
         
@@ -1358,8 +1514,22 @@ function initSeatDrawApp() {
             showSeatStatusMessage('이름은 최소 2글자 이상이어야 합니다.', 'error');
             return;
         }
+
+        if (currentSeatMemberList.length > 0) {
+            const matchedName = currentSeatMemberList.find(m => normalizeName(m) === normalizeName(name));
+            if (!matchedName) {
+                showSeatStatusMessage('목록에서 본인의 이름을 선택해 주세요!', 'error');
+                return;
+            }
+        }
+
+        if (assignedSeatNameSet.has(normalizeName(name))) {
+            showSeatStatusMessage('이미 자리 배정이 완료된 이름입니다!', 'error');
+            return;
+        }
         
         // 버튼 비활성화
+        if (seatNameDropdown) seatNameDropdown.classList.add('hidden');
         seatDrawButton.disabled = true;
         seatNameInput.disabled = true;
         seatStatusMessage.textContent = '';
@@ -1381,7 +1551,7 @@ function initSeatDrawApp() {
                 
                 // 결과 저장
                 const seatData = {
-                    name: name,
+                    name: assignment.leader || name,
                     seatNumber: assignment.seatNumber,
                     timestamp: Date.now()
                 };
@@ -1444,16 +1614,16 @@ function updateSeatsStatus() {
     database.ref('seats').once('value', (snapshot) => {
         const seatsData = snapshot.val() || {};
         const assignedCount = Object.values(seatsData).filter(seat => seat && seat.leader).length;
-        const isAllSeatsAssigned = assignedCount >= 22;
+        const isAllSeatsAssigned = assignedCount >= 24;
 
         if (seatStatusBoard) {
             seatStatusBoard.classList.toggle('hidden', !isAllSeatsAssigned);
         }
         
-        // 그리드 뷰: 1~22번 카드
+        // 그리드 뷰: 1~24번 카드
         if (seatsList) {
             const seatsHTML = [];
-            for (let i = 1; i <= 22; i++) {
+            for (let i = 1; i <= 24; i++) {
                 const seat = seatsData[i];
                 const isAssigned = seat && seat.leader;
                 const nameText = isAssigned ? seat.leader : '-';

@@ -161,6 +161,23 @@
                 </div>
             </section>
 
+            <!-- 자리 뽑기 명단 관리 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">🪑 자리 뽑기 명단 관리</h2>
+                <p class="section-description">자리 뽑기 드롭다운 목록에 표시될 전체 명단을 입력하세요.</p>
+
+                <div class="restriction-config">
+                    <label for="seatMemberListInput" class="input-label admin-input-label">전체 명단</label>
+                    <textarea id="seatMemberListInput" class="admin-textarea" rows="6"
+                        placeholder="예: 승석이네, 광림이네, 혜미네&#10;또는 줄바꿈으로 입력"></textarea>
+                    <p class="config-help-text">쉼표(,) 또는 줄바꿈으로 이름을 구분합니다. 전체 데이터 초기화 시에도 유지됩니다.</p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button id="saveSeatMemberListBtn" class="admin-button primary">💾 명단 저장하기</button>
+                        <button id="deleteSeatMemberListBtn" class="admin-button danger">🗑️ 명단 삭제하기</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- 자리 뽑기 제한 설정 섹션 -->
             <section class="admin-section">
                 <h2 class="section-title">🚫 자리 뽑기 제한 설정</h2>
@@ -278,12 +295,12 @@
 
                     <div class="stat-card">
                         <div class="stat-label">남은 자리</div>
-                        <div class="stat-value" id="remainingSeats">22</div>
+                        <div class="stat-value" id="remainingSeats">24</div>
                     </div>
 
                     <div class="stat-card">
                         <div class="stat-label">총 자리 수</div>
-                        <div class="stat-value">22</div>
+                        <div class="stat-value">24</div>
                     </div>
                 </div>
 
@@ -331,6 +348,8 @@
                                 <div class="seat-slot seat-slot-numbered available" data-seat-number="20"><span class="seat-slot-label">20</span><span class="seat-slot-name">-</span></div>
                                 <div class="seat-slot seat-slot-numbered available" data-seat-number="21"><span class="seat-slot-label">21</span><span class="seat-slot-name">-</span></div>
                                 <div class="seat-slot seat-slot-numbered available" data-seat-number="22"><span class="seat-slot-label">22</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="23"><span class="seat-slot-label">23</span><span class="seat-slot-name">-</span></div>
+                                <div class="seat-slot seat-slot-numbered available" data-seat-number="24"><span class="seat-slot-label">24</span><span class="seat-slot-name">-</span></div>
                             </div>
                         </div>
                     </div>
