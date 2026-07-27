@@ -365,13 +365,11 @@ function initUserApp() {
         if (!nameDropdown) return;
 
         const keyword = normalizeName(filterKeyword);
-        const initialKeyword = getHangulInitial(filterKeyword.trim().toLowerCase());
 
         const filtered = currentMemberList.filter(name => {
             if (!keyword) return true;
             const normalized = normalizeName(name);
-            const initial = getHangulInitial(normalized);
-            return normalized.includes(keyword) || initial.includes(initialKeyword);
+            return normalized.includes(keyword);
         });
 
         if (filtered.length === 0) {
