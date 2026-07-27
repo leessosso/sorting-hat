@@ -36,7 +36,12 @@
 
                 <div class="input-section">
                     <label for="nameInput" class="input-label">당신의 이름은?</label>
-                    <input type="text" id="nameInput" class="name-input" placeholder="이름을 입력하세요" maxlength="20">
+                    <div class="search-dropdown-wrapper">
+                        <input type="text" id="nameInput" class="name-input search-input" placeholder="이름을 검색하거나 선택하세요" autocomplete="off" maxlength="20">
+                        <div id="nameDropdown" class="dropdown-menu hidden">
+                            <!-- 드롭다운 목록이 동적으로 표시됩니다 -->
+                        </div>
+                    </div>
                 </div>
 
                 <button id="sortButton" class="sort-button">

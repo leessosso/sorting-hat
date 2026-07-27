@@ -54,6 +54,10 @@ const TEAM_LEADER_RESTRICTED_NAMES = {
     '김광림': ['배유림', '유림', '유림이네', '유림이'],
     '이혜미': ['언이네', '장언', '장 언', '언']
 };
+// 서로 같은 조에 들어갈 수 없는 그룹 목록 (각 그룹 내에서는 한 조에 최대 1명만 배정)
+const MUTUALLY_EXCLUSIVE_GROUPS = [
+    ['장현진', '한성민']
+];
 
 // ========================================
 // 유틸리티 함수
@@ -104,6 +108,34 @@ function parseSeatRestrictedNames(rawValue) {
     )];
 }
 
+function parseMemberList(rawValue) {
+    if (!rawValue || typeof rawValue !== 'string') {
+        return [];
+    }
+
+    return [...new Set(
+        rawValue
+            .split(/[\n,]/)
+            .map(name => name.trim())
+            .filter(Boolean)
+    )];
+}
+
+// 한글 초성 추출 함수 (초성 검색 지원)
+const CHO_HANGUL = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+function getHangulInitial(str) {
+    let result = "";
+    for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i) - 44032;
+        if (code >= 0 && code <= 11172) {
+            result += CHO_HANGUL[Math.floor(code / 588)];
+        } else {
+            result += str.charAt(i);
+        }
+    }
+    return result;
+}
+
 function normalizeName(value) {
     return String(value || '')
         .trim()
@@ -128,6 +160,17 @@ async function assignToTeam(userName) {
             throw new Error('현재 배정이 중지되어 있습니다. 관리자에게 문의하세요.');
         }
 
+        // 1-1. 명단 세팅이 되어 있는 경우, 명단 등록 여부 확인
+        const memberList = Array.isArray(config.memberList) ? config.memberList : [];
+        let canonicalName = userName.trim();
+        if (memberList.length > 0) {
+            const matchedName = memberList.find(m => normalizeName(m) === normalizeName(userName));
+            if (!matchedName) {
+                throw new Error('등록된 명단에 없는 이름입니다. 목록에서 이름을 선택해 주세요.');
+            }
+            canonicalName = matchedName;
+        }
+
         // 2. 활성화된 조 목록 가져오기
         const teamsSnapshot = await teamsRef.once('value');
         const teamsData = teamsSnapshot.val() || {};
@@ -148,7 +191,8 @@ async function assignToTeam(userName) {
 
         // 2-1. 이미 배정된 사용자인지 전체 조에서 확인 (중복 배정 방지)
         for (const team of activeTeams) {
-            if (team.members.includes(userName)) {
+            const normalizedMembers = (team.members || []).map(normalizeName);
+            if (normalizedMembers.includes(normalizeName(canonicalName))) {
                 // 이미 배정된 경우 해당 조 정보 반환
                 return {
                     teamId: team.id,
@@ -164,7 +208,7 @@ async function assignToTeam(userName) {
             }
         }
 
-        // 3. 이름 기반 조별 제한 적용
+        // 3. 이름 기반 조별 제한 및 상호 배타 그룹 제한 적용
         const normalizedUserName = normalizeName(userName);
         const restrictedLeaders = new Set(
             Object.entries(TEAM_LEADER_RESTRICTED_NAMES)
@@ -174,9 +218,21 @@ async function assignToTeam(userName) {
                 .map(([leader]) => leader)
         );
 
-        const eligibleTeams = restrictedLeaders.size > 0
+        let eligibleTeams = restrictedLeaders.size > 0
             ? activeTeams.filter(team => !restrictedLeaders.has(team.leader))
             : activeTeams;
+
+        // 상호 배타 그룹 체크: 사용자가 속한 그룹 멤버가 이미 배정된 조는 제외
+        for (const group of MUTUALLY_EXCLUSIVE_GROUPS) {
+            const normalizedGroup = group.map(normalizeName);
+            if (normalizedGroup.includes(normalizedUserName)) {
+                const otherMemberNames = group.filter(name => normalizeName(name) !== normalizedUserName);
+                eligibleTeams = eligibleTeams.filter(team => {
+                    const normalizedMembers = (team.members || []).map(normalizeName);
+                    return !otherMemberNames.some(otherName => normalizedMembers.includes(normalizeName(otherName)));
+                });
+            }
+        }
 
         if (eligibleTeams.length === 0) {
             throw new Error('현재 배정 가능한 조가 없습니다. 관리자에게 문의하세요.');
@@ -199,13 +255,14 @@ async function assignToTeam(userName) {
 
             // 멤버가 이미 존재하는지 확인 (이중 체크)
             const members = currentTeam.members || [];
-            if (members.includes(userName)) {
+            const normalizedMembers = members.map(normalizeName);
+            if (normalizedMembers.includes(normalizeName(canonicalName))) {
                 // 이미 배정된 경우 트랜잭션 중단
                 return undefined;
             }
 
             // 새 멤버 추가
-            currentTeam.members = [...members, userName];
+            currentTeam.members = [...members, canonicalName];
             currentTeam.count = (currentTeam.count || 0) + 1;
             currentTeam.updatedAt = Date.now();
 
@@ -242,6 +299,7 @@ function initUserApp() {
     console.log('Initializing user app...');
 
     const nameInput = document.getElementById('nameInput');
+    const nameDropdown = document.getElementById('nameDropdown');
     const sortButton = document.getElementById('sortButton');
     const hatImage = document.getElementById('hatImage');
     const thinkingText = document.getElementById('thinkingText');
@@ -252,6 +310,98 @@ function initUserApp() {
     const resultLeader = document.getElementById('resultLeader');
     const resultMessage = document.getElementById('resultMessage');
     const confetti = document.getElementById('confetti');
+
+    let currentMemberList = [];
+    let assignedNameSet = new Set();
+
+    // 드롭다운 목록 렌더링 함수
+    function renderDropdown(filterKeyword = '') {
+        if (!nameDropdown) return;
+
+        const keyword = normalizeName(filterKeyword);
+        const initialKeyword = getHangulInitial(filterKeyword.trim().toLowerCase());
+
+        const filtered = currentMemberList.filter(name => {
+            if (!keyword) return true;
+            const normalized = normalizeName(name);
+            const initial = getHangulInitial(normalized);
+            return normalized.includes(keyword) || initial.includes(initialKeyword);
+        });
+
+        if (filtered.length === 0) {
+            nameDropdown.innerHTML = '<div class="dropdown-empty">일치하는 이름이 없습니다</div>';
+            nameDropdown.classList.remove('hidden');
+            return;
+        }
+
+        nameDropdown.innerHTML = filtered.map(name => {
+            const isAssigned = assignedNameSet.has(normalizeName(name));
+            return `
+                <div class="dropdown-item ${isAssigned ? 'assigned' : ''}" data-name="${name}">
+                    <span>${name}</span>
+                    ${isAssigned ? '<span class="badge-assigned">배정완료</span>' : ''}
+                </div>
+            `;
+        }).join('');
+
+        nameDropdown.classList.remove('hidden');
+    }
+
+    // 명단 구독
+    database.ref('config/memberList').on('value', (snapshot) => {
+        currentMemberList = snapshot.val() || [];
+    });
+
+    // 배정된 인원 실시간 구독 (모든 조의 멤버 목록 수집)
+    database.ref('teams').on('value', (snapshot) => {
+        const teams = snapshot.val() || {};
+        const assigned = new Set();
+        Object.values(teams).forEach(team => {
+            if (team.members && Array.isArray(team.members)) {
+                team.members.forEach(m => assigned.add(normalizeName(m)));
+            }
+        });
+        assignedNameSet = assigned;
+        if (nameDropdown && !nameDropdown.classList.contains('hidden')) {
+            renderDropdown(nameInput ? nameInput.value : '');
+        }
+    });
+
+    if (nameInput && nameDropdown) {
+        nameInput.addEventListener('focus', () => {
+            if (currentMemberList.length > 0) {
+                renderDropdown(nameInput.value);
+            }
+        });
+
+        nameInput.addEventListener('input', () => {
+            if (currentMemberList.length > 0) {
+                renderDropdown(nameInput.value);
+            }
+        });
+
+        nameDropdown.addEventListener('click', (e) => {
+            const item = e.target.closest('.dropdown-item');
+            if (!item) return;
+            
+            if (item.classList.contains('assigned')) {
+                showStatusMessage('이미 배정이 완료된 이름입니다!', 'error');
+                return;
+            }
+
+            const selectedName = item.dataset.name;
+            nameInput.value = selectedName;
+            nameDropdown.classList.add('hidden');
+            statusMessage.textContent = '';
+            statusMessage.className = 'status-message';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-dropdown-wrapper')) {
+                nameDropdown.classList.add('hidden');
+            }
+        });
+    }
 
     // SessionStorage에서 저장된 배정 결과 확인 및 검증
     const savedAssignment = getFromSessionStorage('userAssignment');
@@ -305,7 +455,7 @@ function initUserApp() {
         const name = nameInput.value.trim();
 
         if (!name) {
-            showStatusMessage('이름을 입력해주세요!', 'error');
+            showStatusMessage('이름을 입력하거나 검색해서 선택해주세요!', 'error');
             return;
         }
 
@@ -314,7 +464,23 @@ function initUserApp() {
             return;
         }
 
+        // 명단에 있는 이름인지 사전 검증
+        if (currentMemberList.length > 0) {
+            const matchedName = currentMemberList.find(m => normalizeName(m) === normalizeName(name));
+            if (!matchedName) {
+                showStatusMessage('목록에서 본인의 이름을 선택해 주세요!', 'error');
+                return;
+            }
+        }
+
+        // 이미 배정된 이름인지 1차 검증
+        if (assignedNameSet.has(normalizeName(name))) {
+            showStatusMessage('이미 배정이 완료된 이름입니다!', 'error');
+            return;
+        }
+
         // 버튼 비활성화
+        if (nameDropdown) nameDropdown.classList.add('hidden');
         sortButton.disabled = true;
         nameInput.disabled = true;
         statusMessage.textContent = '';
@@ -631,7 +797,7 @@ function initAdminApp() {
         }
     });
 
-    // 자리 뽑기 토글
+    // 자리 뽑기 제한 설정 섹션
     const seatDrawToggle = document.getElementById('seatDrawToggle');
     const seatStatusIndicator = document.getElementById('seatStatusIndicator');
     const seatStatusInfo = document.getElementById('seatStatusInfo');
@@ -641,6 +807,39 @@ function initAdminApp() {
     const seatsDetail = document.getElementById('seatsDetail');
     const seatRestrictedNamesInput = document.getElementById('seatRestrictedNamesInput');
     const saveSeatRestrictionsBtn = document.getElementById('saveSeatRestrictionsBtn');
+    const memberListInput = document.getElementById('memberListInput');
+    const saveMemberListBtn = document.getElementById('saveMemberListBtn');
+
+    // 조 배정 명단 불러오기
+    database.ref('config/memberList').on('value', (snapshot) => {
+        if (!memberListInput) return;
+        const names = snapshot.val() || [];
+        if (Array.isArray(names)) {
+            memberListInput.value = names.join('\n');
+        } else {
+            memberListInput.value = '';
+        }
+    });
+
+    // 조 배정 명단 저장하기
+    if (saveMemberListBtn && memberListInput) {
+        saveMemberListBtn.addEventListener('click', async () => {
+            const memberList = parseMemberList(memberListInput.value);
+
+            try {
+                saveMemberListBtn.disabled = true;
+                saveMemberListBtn.textContent = '저장 중...';
+                await database.ref('config/memberList').set(memberList);
+                alert(`조 배정 명단이 저장되었습니다. (총 ${memberList.length}명)`);
+            } catch (error) {
+                console.error('Save member list error:', error);
+                alert('명단 저장 중 오류가 발생했습니다: ' + error.message);
+            } finally {
+                saveMemberListBtn.disabled = false;
+                saveMemberListBtn.textContent = '💾 명단 저장하기';
+            }
+        });
+    }
 
     // 자리 뽑기 상태 토글
     database.ref('config/seatDrawEnabled').on('value', (snapshot) => {

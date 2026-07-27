@@ -202,6 +202,74 @@ body::before {
     color: rgba(245, 230, 211, 0.5);
 }
 
+/* 검색 드롭다운 스타일 */
+.search-dropdown-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 100%;
+    max-height: 240px;
+    overflow-y: auto;
+    background: #1e1b2e;
+    border: 2px solid var(--color-gold);
+    border-radius: 10px;
+    z-index: 100;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    padding: 6px 0;
+}
+
+.dropdown-menu.hidden {
+    display: none;
+}
+
+.dropdown-item {
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    color: var(--color-parchment);
+    font-size: 1rem;
+    transition: background 0.2s ease;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover:not(.assigned) {
+    background: rgba(212, 175, 55, 0.25);
+    color: var(--color-gold-light);
+}
+
+.dropdown-item.assigned {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.dropdown-item .badge-assigned {
+    font-size: 0.8rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(231, 76, 60, 0.3);
+    color: #ff8e8e;
+    border: 1px solid rgba(231, 76, 60, 0.5);
+}
+
+.dropdown-empty {
+    padding: 15px;
+    text-align: center;
+    color: rgba(245, 230, 211, 0.6);
+    font-size: 0.95rem;
+}
+
 /* 배정 버튼 */
 .sort-button {
     padding: 18px 40px;
