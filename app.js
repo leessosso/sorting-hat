@@ -121,6 +121,46 @@ function parseMemberList(rawValue) {
     )];
 }
 
+function formatLeaderRestrictionsText(obj) {
+    if (!obj || typeof obj !== 'object') return '';
+    return Object.entries(obj)
+        .map(([leader, names]) => `${leader}: ${Array.isArray(names) ? names.join(', ') : names}`)
+        .join('\n');
+}
+
+function parseLeaderRestrictionsText(text) {
+    const result = {};
+    if (!text) return result;
+    const lines = text.split('\n');
+    for (const line of lines) {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx === -1) continue;
+        const leader = line.substring(0, colonIdx).trim();
+        const namesStr = line.substring(colonIdx + 1).trim();
+        if (!leader || !namesStr) continue;
+        const names = namesStr.split(',').map(n => n.trim()).filter(Boolean);
+        if (names.length > 0) {
+            result[leader] = names;
+        }
+    }
+    return result;
+}
+
+function formatMutuallyExclusiveText(groups) {
+    if (!Array.isArray(groups)) return '';
+    return groups
+        .map(group => Array.isArray(group) ? group.join(', ') : group)
+        .filter(Boolean)
+        .join('\n');
+}
+
+function parseMutuallyExclusiveText(text) {
+    if (!text) return [];
+    return text.split('\n')
+        .map(line => line.split(',').map(n => n.trim()).filter(Boolean))
+        .filter(group => group.length > 1);
+}
+
 // 한글 초성 추출 함수 (초성 검색 지원)
 const CHO_HANGUL = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
 function getHangulInitial(str) {
@@ -209,11 +249,16 @@ async function assignToTeam(userName) {
         }
 
         // 3. 이름 기반 조별 제한 및 상호 배타 그룹 제한 적용
+        const teamLeaderRestrictions = config.teamLeaderRestrictions || TEAM_LEADER_RESTRICTED_NAMES;
+        const mutuallyExclusiveGroups = Array.isArray(config.mutuallyExclusiveGroups)
+            ? config.mutuallyExclusiveGroups
+            : MUTUALLY_EXCLUSIVE_GROUPS;
+
         const normalizedUserName = normalizeName(userName);
         const restrictedLeaders = new Set(
-            Object.entries(TEAM_LEADER_RESTRICTED_NAMES)
+            Object.entries(teamLeaderRestrictions)
                 .filter(([_, restrictedNames]) =>
-                    restrictedNames.some(name => normalizeName(name) === normalizedUserName)
+                    Array.isArray(restrictedNames) && restrictedNames.some(name => normalizeName(name) === normalizedUserName)
                 )
                 .map(([leader]) => leader)
         );
@@ -223,7 +268,8 @@ async function assignToTeam(userName) {
             : activeTeams;
 
         // 상호 배타 그룹 체크: 사용자가 속한 그룹 멤버가 이미 배정된 조는 제외
-        for (const group of MUTUALLY_EXCLUSIVE_GROUPS) {
+        for (const group of mutuallyExclusiveGroups) {
+            if (!Array.isArray(group)) continue;
             const normalizedGroup = group.map(normalizeName);
             if (normalizedGroup.includes(normalizedUserName)) {
                 const otherMemberNames = group.filter(name => normalizeName(name) !== normalizedUserName);
@@ -837,6 +883,107 @@ function initAdminApp() {
             } finally {
                 saveMemberListBtn.disabled = false;
                 saveMemberListBtn.textContent = '💾 명단 저장하기';
+            }
+        });
+    }
+
+    // 예외 배정 비밀 메뉴 로직
+    const secretAuthForm = document.getElementById('secretAuthForm');
+    const secretPasswordInput = document.getElementById('secretPasswordInput');
+    const secretAuthBtn = document.getElementById('secretAuthBtn');
+    const secretMenuContent = document.getElementById('secretMenuContent');
+    const leaderRestrictionsInput = document.getElementById('leaderRestrictionsInput');
+    const mutuallyExclusiveInput = document.getElementById('mutuallyExclusiveInput');
+    const newSecretPasswordInput = document.getElementById('newSecretPasswordInput');
+    const saveSecretConfigBtn = document.getElementById('saveSecretConfigBtn');
+    const lockSecretMenuBtn = document.getElementById('lockSecretMenuBtn');
+
+    let currentSecretPassword = "7777";
+    let currentLeaderRestrictions = null;
+    let currentMutuallyExclusiveGroups = null;
+
+    database.ref('config').on('value', (snapshot) => {
+        const config = snapshot.val() || {};
+        currentSecretPassword = config.secretPassword || "7777";
+        currentLeaderRestrictions = config.teamLeaderRestrictions || TEAM_LEADER_RESTRICTED_NAMES;
+        currentMutuallyExclusiveGroups = config.mutuallyExclusiveGroups || MUTUALLY_EXCLUSIVE_GROUPS;
+
+        if (secretMenuContent && !secretMenuContent.classList.contains('hidden')) {
+            if (leaderRestrictionsInput) {
+                leaderRestrictionsInput.value = formatLeaderRestrictionsText(currentLeaderRestrictions);
+            }
+            if (mutuallyExclusiveInput) {
+                mutuallyExclusiveInput.value = formatMutuallyExclusiveText(currentMutuallyExclusiveGroups);
+            }
+        }
+    });
+
+    function authenticateSecretMenu() {
+        const enteredPassword = secretPasswordInput ? secretPasswordInput.value.trim() : '';
+        if (enteredPassword === currentSecretPassword) {
+            secretAuthForm.classList.add('hidden');
+            secretMenuContent.classList.remove('hidden');
+            if (leaderRestrictionsInput) {
+                leaderRestrictionsInput.value = formatLeaderRestrictionsText(currentLeaderRestrictions);
+            }
+            if (mutuallyExclusiveInput) {
+                mutuallyExclusiveInput.value = formatMutuallyExclusiveText(currentMutuallyExclusiveGroups);
+            }
+            if (secretPasswordInput) secretPasswordInput.value = '';
+        } else {
+            alert('비밀번호가 올바르지 않습니다.');
+        }
+    }
+
+    if (secretAuthBtn) {
+        secretAuthBtn.addEventListener('click', authenticateSecretMenu);
+    }
+    if (secretPasswordInput) {
+        secretPasswordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') authenticateSecretMenu();
+        });
+    }
+
+    if (lockSecretMenuBtn) {
+        lockSecretMenuBtn.addEventListener('click', () => {
+            secretMenuContent.classList.add('hidden');
+            secretAuthForm.classList.remove('hidden');
+            if (newSecretPasswordInput) newSecretPasswordInput.value = '';
+        });
+    }
+
+    if (saveSecretConfigBtn) {
+        saveSecretConfigBtn.addEventListener('click', async () => {
+            const parsedLeaderRestrictions = parseLeaderRestrictionsText(leaderRestrictionsInput ? leaderRestrictionsInput.value : '');
+            const parsedMutuallyExclusive = parseMutuallyExclusiveText(mutuallyExclusiveInput ? mutuallyExclusiveInput.value : '');
+            const newPassword = newSecretPasswordInput ? newSecretPasswordInput.value.trim() : '';
+
+            try {
+                saveSecretConfigBtn.disabled = true;
+                saveSecretConfigBtn.textContent = '저장 중...';
+
+                const updates = {};
+                updates['config/teamLeaderRestrictions'] = parsedLeaderRestrictions;
+                updates['config/mutuallyExclusiveGroups'] = parsedMutuallyExclusive;
+                if (newPassword) {
+                    if (newPassword.length < 4) {
+                        alert('새 비밀번호는 최소 4자리 이상이어야 합니다.');
+                        saveSecretConfigBtn.disabled = false;
+                        saveSecretConfigBtn.textContent = '💾 비밀 설정 저장하기';
+                        return;
+                    }
+                    updates['config/secretPassword'] = newPassword;
+                }
+
+                await database.ref().update(updates);
+                if (newSecretPasswordInput) newSecretPasswordInput.value = '';
+                alert('비밀 설정이 성공적으로 저장되었습니다!');
+            } catch (error) {
+                console.error('Save secret config error:', error);
+                alert('저장 중 오류가 발생했습니다: ' + error.message);
+            } finally {
+                saveSecretConfigBtn.disabled = false;
+                saveSecretConfigBtn.textContent = '💾 비밀 설정 저장하기';
             }
         });
     }

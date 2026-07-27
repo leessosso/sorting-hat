@@ -172,6 +172,51 @@
                 </div>
             </section>
 
+            <!-- 예외 배정 비밀 메뉴 섹션 -->
+            <section class="admin-section">
+                <h2 class="section-title">🔐 예외 배정 비밀 메뉴</h2>
+                <p class="section-description">마을장-가장 배정 제외 명단 및 가장-가장 상호 배타 목록을 조회/수정합니다.</p>
+
+                <!-- 비밀번호 인증 폼 -->
+                <div id="secretAuthForm" class="restriction-config">
+                    <label for="secretPasswordInput" class="input-label admin-input-label">비밀번호 입력</label>
+                    <div style="display: flex; gap: 10px; max-width: 400px; margin-bottom: 10px;">
+                        <input type="password" id="secretPasswordInput" class="name-input" placeholder="비밀번호 입력" style="text-align: left;">
+                        <button id="secretAuthBtn" class="admin-button primary" style="white-space: nowrap;">🔒 열기</button>
+                    </div>
+                    <p class="config-help-text">기본 비밀번호는 <strong>7777</strong> 입니다.</p>
+                </div>
+
+                <!-- 비밀 메뉴 콘텐츠 (인증 후 표시) -->
+                <div id="secretMenuContent" class="secret-content hidden">
+                    <div class="restriction-config" style="margin-bottom: 24px;">
+                        <label class="input-label admin-input-label" style="color: var(--color-gold);">1. 마을장(조장) - 가장 배정 제외 목록</label>
+                        <p class="config-help-text" style="margin-bottom: 8px;">형식: <code>조장명: 이름1, 이름2</code> (줄바꿈으로 구분)</p>
+                        <textarea id="leaderRestrictionsInput" class="admin-textarea" rows="5"
+                            placeholder="예:&#10;김광림: 배유림, 유림, 유림이네, 유림이&#10;이혜미: 언이네, 장언, 장 언, 언"></textarea>
+                    </div>
+
+                    <div class="restriction-config" style="margin-bottom: 24px;">
+                        <label class="input-label admin-input-label" style="color: var(--color-gold);">2. 가장 - 가장 상호 배타 그룹 (같은 조 금지 목록)</label>
+                        <p class="config-help-text" style="margin-bottom: 8px;">한 조에 같이 배정되면 안 되는 그룹입니다. (한 줄에 쉼표로 구분)</p>
+                        <textarea id="mutuallyExclusiveInput" class="admin-textarea" rows="5"
+                            placeholder="예:&#10;장현진, 한성민&#10;홍길동, 김철수"></textarea>
+                    </div>
+
+                    <div class="restriction-config" style="margin-bottom: 24px;">
+                        <label for="newSecretPasswordInput" class="input-label admin-input-label">3. 비밀번호 변경 (선택)</label>
+                        <div style="max-width: 400px;">
+                            <input type="password" id="newSecretPasswordInput" class="name-input" placeholder="새 비밀번호 (변경시에만 입력)" style="text-align: left;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button id="saveSecretConfigBtn" class="admin-button primary">💾 비밀 설정 저장하기</button>
+                        <button id="lockSecretMenuBtn" class="admin-button warning">🔒 비밀 메뉴 잠그기</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- 데이터 관리 섹션 -->
             <section class="admin-section">
                 <h2 class="section-title">🗑️ 데이터 관리</h2>

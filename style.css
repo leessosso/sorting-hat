@@ -270,6 +270,17 @@ body::before {
     font-size: 0.95rem;
 }
 
+/* 비밀 메뉴 스타일 */
+.secret-content {
+    margin-top: 15px;
+    padding-top: 20px;
+    border-top: 1px dashed rgba(212, 175, 55, 0.4);
+}
+
+.secret-content.hidden {
+    display: none !important;
+}
+
 /* 배정 버튼 */
 .sort-button {
     padding: 18px 40px;
