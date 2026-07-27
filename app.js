@@ -818,7 +818,7 @@ function initAdminApp() {
 
     // 전체 데이터 초기화
     resetAllBtn.addEventListener('click', async () => {
-        if (!confirm('⚠️ 경고: 모든 조와 배정 데이터를 삭제합니다. 계속하시겠습니까?')) {
+        if (!confirm('⚠️ 경고: 모든 조와 배정 데이터를 삭제합니다. 계속하시겠습니까? (설정된 명단은 유지됩니다)')) {
             return;
         }
 
@@ -829,13 +829,11 @@ function initAdminApp() {
         try {
             await database.ref('teams').remove();
             await database.ref('seats').remove();
-            await database.ref('config').set({
-                sortingEnabled: false,
-                seatDrawEnabled: false,
-                seatTopRestrictedNames: []
-            });
+            await database.ref('config/sortingEnabled').set(false);
+            await database.ref('config/seatDrawEnabled').set(false);
+            await database.ref('config/seatTopRestrictedNames').set([]);
 
-            alert('전체 데이터가 초기화되었습니다.');
+            alert('전체 배정 데이터가 초기화되었습니다.');
 
         } catch (error) {
             console.error('Reset all error:', error);
@@ -855,6 +853,7 @@ function initAdminApp() {
     const saveSeatRestrictionsBtn = document.getElementById('saveSeatRestrictionsBtn');
     const memberListInput = document.getElementById('memberListInput');
     const saveMemberListBtn = document.getElementById('saveMemberListBtn');
+    const deleteMemberListBtn = document.getElementById('deleteMemberListBtn');
 
     // 조 배정 명단 불러오기
     database.ref('config/memberList').on('value', (snapshot) => {
@@ -883,6 +882,29 @@ function initAdminApp() {
             } finally {
                 saveMemberListBtn.disabled = false;
                 saveMemberListBtn.textContent = '💾 명단 저장하기';
+            }
+        });
+    }
+
+    // 조 배정 명단 삭제하기
+    if (deleteMemberListBtn) {
+        deleteMemberListBtn.addEventListener('click', async () => {
+            if (!confirm('정말로 저장된 전체 조 배정 명단을 삭제하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                deleteMemberListBtn.disabled = true;
+                deleteMemberListBtn.textContent = '삭제 중...';
+                await database.ref('config/memberList').remove();
+                if (memberListInput) memberListInput.value = '';
+                alert('조 배정 명단이 삭제되었습니다.');
+            } catch (error) {
+                console.error('Delete member list error:', error);
+                alert('명단 삭제 중 오류가 발생했습니다: ' + error.message);
+            } finally {
+                deleteMemberListBtn.disabled = false;
+                deleteMemberListBtn.textContent = '🗑️ 명단 삭제하기';
             }
         });
     }
