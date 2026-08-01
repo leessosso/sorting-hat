@@ -50,6 +50,7 @@ const SUCCESS_MESSAGES = [
 ];
 
 const TOP_SEAT_NUMBERS = [1, 2, 3, 4];
+const DEFAULT_SEAT_COUNT = 24; // 배치도 레이아웃용 참고값 (배정 인원은 명단 기준)
 const TEAM_LEADER_RESTRICTED_NAMES = {
     '김광림': ['배유림', '유림', '유림이네', '유림이'],
     '이혜미': ['언이네', '장언', '장 언', '언']
@@ -66,6 +67,14 @@ const MUTUALLY_EXCLUSIVE_GROUPS = [
 // 랜덤 요소 선택
 function getRandomElement(array) {
     return array[Math.floor(Math.random() * array.length)];
+}
+
+// 자리 뽑기 총 번호 수 = 관리자 자리 뽑기 명단 인원 수
+function getSeatTotalCount(seatMemberList) {
+    if (Array.isArray(seatMemberList) && seatMemberList.length > 0) {
+        return seatMemberList.length;
+    }
+    return 0;
 }
 
 // SessionStorage 관리 (브라우저 세션 동안만 유지, 닫으면 자동 삭제)
@@ -909,6 +918,7 @@ function initAdminApp() {
     const resetSeatsBtn = document.getElementById('resetSeatsBtn');
     const assignedSeats = document.getElementById('assignedSeats');
     const remainingSeats = document.getElementById('remainingSeats');
+    const totalSeats = document.getElementById('totalSeats');
     const seatsDetail = document.getElementById('seatsDetail');
     const seatRestrictedNamesInput = document.getElementById('seatRestrictedNamesInput');
     const saveSeatRestrictionsBtn = document.getElementById('saveSeatRestrictionsBtn');
@@ -918,6 +928,15 @@ function initAdminApp() {
     const seatMemberListInput = document.getElementById('seatMemberListInput');
     const saveSeatMemberListBtn = document.getElementById('saveSeatMemberListBtn');
     const deleteSeatMemberListBtn = document.getElementById('deleteSeatMemberListBtn');
+    let adminSeatTotalCount = 0;
+    let adminAssignedSeatCount = 0;
+
+    function refreshAdminSeatStats() {
+        const remaining = Math.max(0, adminSeatTotalCount - adminAssignedSeatCount);
+        if (assignedSeats) assignedSeats.textContent = adminAssignedSeatCount;
+        if (remainingSeats) remainingSeats.textContent = remaining;
+        if (totalSeats) totalSeats.textContent = adminSeatTotalCount;
+    }
 
     // 조 배정 명단 불러오기
     database.ref('config/memberList').on('value', (snapshot) => {
@@ -975,13 +994,12 @@ function initAdminApp() {
 
     // 자리 뽑기 명단 불러오기
     database.ref('config/seatMemberList').on('value', (snapshot) => {
-        if (!seatMemberListInput) return;
         const names = snapshot.val() || [];
-        if (Array.isArray(names)) {
-            seatMemberListInput.value = names.join('\n');
-        } else {
-            seatMemberListInput.value = '';
-        }
+        const list = Array.isArray(names) ? names : [];
+        adminSeatTotalCount = getSeatTotalCount(list);
+        refreshAdminSeatStats();
+        if (!seatMemberListInput) return;
+        seatMemberListInput.value = list.length > 0 ? list.join('\n') : '';
     });
 
     // 자리 뽑기 명단 저장하기
@@ -1208,11 +1226,9 @@ function initAdminApp() {
     // 자리 배정 실시간 통계
     database.ref('seats').on('value', (snapshot) => {
         const seatsData = snapshot.val() || {};
-        const assigned = Object.keys(seatsData).length;
-        const remaining = 24 - assigned;
-
-        assignedSeats.textContent = assigned;
-        remainingSeats.textContent = remaining;
+        const assigned = Object.values(seatsData).filter(seat => seat && seat.leader).length;
+        adminAssignedSeatCount = assigned;
+        refreshAdminSeatStats();
 
         // 자리별 상세 정보
         if (assigned === 0) {
@@ -1342,16 +1358,18 @@ async function assignSeat(leaderName) {
             ? config.seatTopRestrictedNames
             : [];
 
-        // 1-1. 명단 세팅이 되어 있는 경우, 명단 등록 여부 확인
+        // 1-1. 자리 뽑기 명단 기준 인원 수만큼 번호 배정
         const seatMemberList = Array.isArray(config.seatMemberList) ? config.seatMemberList : [];
-        let canonicalName = leaderName.trim();
-        if (seatMemberList.length > 0) {
-            const matchedName = seatMemberList.find(m => normalizeName(m) === normalizeName(leaderName));
-            if (!matchedName) {
-                throw new Error('등록된 명단에 없는 이름입니다. 목록에서 이름을 선택해 주세요.');
-            }
-            canonicalName = matchedName;
+        const seatTotalCount = getSeatTotalCount(seatMemberList);
+        if (seatTotalCount === 0) {
+            throw new Error('자리 뽑기 명단이 등록되지 않았습니다. 관리자에게 문의하세요.');
         }
+
+        const matchedName = seatMemberList.find(m => normalizeName(m) === normalizeName(leaderName));
+        if (!matchedName) {
+            throw new Error('등록된 명단에 없는 이름입니다. 목록에서 이름을 선택해 주세요.');
+        }
+        const canonicalName = matchedName;
 
         const isTopSeatRestricted = restrictedNames.some(
             name => normalizeName(name) === normalizeName(canonicalName)
@@ -1379,10 +1397,10 @@ async function assignSeat(leaderName) {
             };
         }
         
-        // 3. 사용 가능한 자리 번호 찾기 (1~24)
+        // 3. 사용 가능한 자리 번호 찾기 (1 ~ 명단 인원 수)
         const assignedNumbers = Object.keys(seatsData).map(n => parseInt(n));
         const availableNumbers = [];
-        for (let i = 1; i <= 24; i++) {
+        for (let i = 1; i <= seatTotalCount; i++) {
             if (!assignedNumbers.includes(i)) {
                 availableNumbers.push(i);
             }
@@ -1480,6 +1498,7 @@ function initSeatDrawApp() {
 
     database.ref('config/seatMemberList').on('value', (snapshot) => {
         currentSeatMemberList = snapshot.val() || [];
+        updateSeatsStatus();
     });
 
     database.ref('seats').on('value', (snapshot) => {
@@ -1674,19 +1693,24 @@ function updateSeatsStatus() {
     const seatsList = document.getElementById('seatsList');
     const seatSlots = document.querySelectorAll('.seat-slot-numbered[data-seat-number]');
     
-    database.ref('seats').once('value', (snapshot) => {
-        const seatsData = snapshot.val() || {};
+    Promise.all([
+        database.ref('seats').once('value'),
+        database.ref('config/seatMemberList').once('value')
+    ]).then(([seatsSnapshot, memberListSnapshot]) => {
+        const seatsData = seatsSnapshot.val() || {};
+        const seatMemberList = memberListSnapshot.val() || [];
+        const seatTotalCount = getSeatTotalCount(seatMemberList) || DEFAULT_SEAT_COUNT;
         const assignedCount = Object.values(seatsData).filter(seat => seat && seat.leader).length;
-        const isAllSeatsAssigned = assignedCount >= 24;
+        const isAllSeatsAssigned = seatTotalCount > 0 && assignedCount >= seatTotalCount;
 
         if (seatStatusBoard) {
             seatStatusBoard.classList.toggle('hidden', !isAllSeatsAssigned);
         }
         
-        // 그리드 뷰: 1~24번 카드
+        // 그리드 뷰: 명단 인원 수만큼 번호 카드
         if (seatsList) {
             const seatsHTML = [];
-            for (let i = 1; i <= 24; i++) {
+            for (let i = 1; i <= seatTotalCount; i++) {
                 const seat = seatsData[i];
                 const isAssigned = seat && seat.leader;
                 const nameText = isAssigned ? seat.leader : '-';
@@ -1700,7 +1724,7 @@ function updateSeatsStatus() {
             seatsList.innerHTML = seatsHTML.join('');
         }
         
-        // 배치도 뷰: 번호 박스 내부 이름 업데이트
+        // 배치도 뷰: 기존 레이아웃 유지 (번호→실좌석 매핑은 내년에 재검토)
         if (seatSlots.length > 0) {
             seatSlots.forEach(slot => {
                 const seatNumber = slot.dataset.seatNumber;
