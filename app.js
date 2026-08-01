@@ -18,16 +18,16 @@ try {
 // 상수 및 설정
 // ========================================
 
-// 조장별 고유 문양 및 색상
+// 조장(직책)별 고유 문양 및 색상 — 인명 대신 직책으로 두어 연도마다 재사용
 const LEADER_EMBLEMS = {
-    '임범석': { icon: '🦁', image: 'images/emblem-lim.png', color: '#c41e3a', name: '용맹' },
-    '김광림': { icon: '🦅', image: 'images/emblem-kim-k.png', color: '#0e1a40', name: '지혜' },
-    '이혜미': { icon: '🦊', image: 'images/emblem-lee-h.png', color: '#ff6b35', name: '지략' },
-    '이승석': { icon: '🐺', image: 'images/emblem-lee-s.png', color: '#4a5568', name: '충성' },
-    '박기도': { icon: '🐉', image: 'images/emblem-park.png', color: '#2d5016', name: '힘' },
-    '김이레': { icon: '🦉', image: 'images/emblem-kim-i.png', color: '#946b2d', name: '지식' },
-    '정효정': { icon: '🐯', image: 'images/emblem-jung.png', color: '#ff8c42', name: '용기' },
-    '우재황': { icon: '🦌', image: 'images/emblem-woo.png', color: '#60a5fa', name: '우아함' }
+    '회장': { icon: '🦁', image: 'images/emblem-lim.png', color: '#c41e3a', name: '용맹' },
+    '부회장': { icon: '🦅', image: 'images/emblem-kim-k.png', color: '#0e1a40', name: '지혜' },
+    '총무': { icon: '🦊', image: 'images/emblem-lee-h.png', color: '#ff6b35', name: '지략' },
+    '부총무': { icon: '🐺', image: 'images/emblem-lee-s.png', color: '#4a5568', name: '충성' },
+    '서기': { icon: '🐉', image: 'images/emblem-park.png', color: '#2d5016', name: '힘' },
+    '부서기': { icon: '🦉', image: 'images/emblem-kim-i.png', color: '#946b2d', name: '지식' },
+    '회계': { icon: '🐯', image: 'images/emblem-jung.png', color: '#ff8c42', name: '용기' },
+    '부회계': { icon: '🦌', image: 'images/emblem-woo.png', color: '#60a5fa', name: '우아함' }
 };
 
 const THINKING_PHRASES = [
@@ -52,8 +52,8 @@ const SUCCESS_MESSAGES = [
 const TOP_SEAT_NUMBERS = [1, 2, 3, 4];
 const DEFAULT_SEAT_COUNT = 24; // 배치도 레이아웃용 참고값 (배정 인원은 명단 기준)
 const TEAM_LEADER_RESTRICTED_NAMES = {
-    '김광림': ['배유림', '유림', '유림이네', '유림이'],
-    '이혜미': ['언이네', '장언', '장 언', '언']
+    '부회장': ['배유림', '유림', '유림이네', '유림이'],
+    '총무': ['언이네', '장언', '장 언', '언']
 };
 // 서로 같은 조에 들어갈 수 없는 그룹 목록 (각 그룹 내에서는 한 조에 최대 1명만 배정)
 const MUTUALLY_EXCLUSIVE_GROUPS = [
