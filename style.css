@@ -271,6 +271,47 @@ body::before {
     font-size: 0.95rem;
 }
 
+.guest-toggle {
+    align-self: center;
+    padding: 8px 18px;
+    border: 2px solid var(--color-gold);
+    border-radius: 8px;
+    background: rgba(42, 42, 62, 0.6);
+    color: var(--color-parchment);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.guest-toggle:hover {
+    background: rgba(62, 62, 82, 0.8);
+    border-color: var(--color-gold-light);
+}
+
+.guest-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.guest-toggle.active {
+    background: var(--color-gold);
+    color: var(--color-ink);
+    border-color: var(--color-gold);
+}
+
+.guest-hint {
+    margin: 0;
+    text-align: center;
+    font-size: 0.9rem;
+    color: rgba(245, 230, 211, 0.75);
+}
+
+.guest-hint.hidden {
+    display: none;
+}
+
 /* 비밀 메뉴 스타일 */
 .secret-content {
     margin-top: 15px;

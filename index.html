@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>배정 모자 - 조 편성</title>
-    <link rel="stylesheet" href="style.css?v=20260801">
+    <link rel="stylesheet" href="style.css?v=20260801b">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=MedievalSharp&display=swap"
@@ -42,6 +42,8 @@
                             <!-- 드롭다운 목록이 동적으로 표시됩니다 -->
                         </div>
                     </div>
+                    <button type="button" id="guestToggle" class="guest-toggle" aria-pressed="false">게스트</button>
+                    <p id="guestHint" class="guest-hint hidden">게스트로 배정됩니다</p>
                 </div>
 
                 <button id="sortButton" class="sort-button">
@@ -189,7 +191,7 @@
     <script src="firebase-config.js"></script>
 
     <!-- App Script -->
-    <script src="app.js"></script>
+    <script src="app.js?v=20260801b"></script>
 
     <script>
         // 사용자 앱 초기화

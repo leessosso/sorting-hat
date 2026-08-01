@@ -183,6 +183,14 @@ function normalizeName(value) {
         .toLowerCase();
 }
 
+function isGuestDisplayName(name) {
+    return /^게스트\(.+\)$/.test(String(name || '').trim());
+}
+
+function toGuestDisplayName(rawName) {
+    return `게스트(${String(rawName || '').trim()})`;
+}
+
 // ========================================
 // 핵심 배정 로직 (최소 인원 조 우선 알고리즘)
 // ========================================
@@ -200,10 +208,12 @@ async function assignToTeam(userName) {
             throw new Error('현재 배정이 중지되어 있습니다. 관리자에게 문의하세요.');
         }
 
-        // 1-1. 명단 세팅이 되어 있는 경우, 명단 등록 여부 확인
+        // 1-1. 명단 세팅이 되어 있는 경우, 명단 등록 여부 확인 (게스트는 예외)
         const memberList = Array.isArray(config.memberList) ? config.memberList : [];
         let canonicalName = userName.trim();
-        if (memberList.length > 0) {
+        if (isGuestDisplayName(canonicalName)) {
+            canonicalName = toGuestDisplayName(canonicalName.slice(4, -1));
+        } else if (memberList.length > 0) {
             const matchedName = memberList.find(m => normalizeName(m) === normalizeName(userName));
             if (!matchedName) {
                 throw new Error('등록된 명단에 없는 이름입니다. 목록에서 이름을 선택해 주세요.');
@@ -346,6 +356,8 @@ function initUserApp() {
 
     const nameInput = document.getElementById('nameInput');
     const nameDropdown = document.getElementById('nameDropdown');
+    const guestToggle = document.getElementById('guestToggle');
+    const guestHint = document.getElementById('guestHint');
     const sortButton = document.getElementById('sortButton');
     const hatImage = document.getElementById('hatImage');
     const thinkingText = document.getElementById('thinkingText');
@@ -359,10 +371,49 @@ function initUserApp() {
 
     let currentMemberList = [];
     let assignedNameSet = new Set();
+    let isGuestMode = false;
+
+    const MEMBER_PLACEHOLDER = '이름을 검색하거나 선택하세요';
+    const GUEST_PLACEHOLDER = '이름을 입력하세요';
+    const MEMBER_MAX_LENGTH = 20;
+    const GUEST_MAX_LENGTH = 14;
+
+    function setGuestMode(enabled) {
+        isGuestMode = enabled;
+        if (guestToggle) {
+            guestToggle.classList.toggle('active', enabled);
+            guestToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+        }
+        if (guestHint) {
+            guestHint.classList.toggle('hidden', !enabled);
+        }
+        if (nameInput) {
+            nameInput.placeholder = enabled ? GUEST_PLACEHOLDER : MEMBER_PLACEHOLDER;
+            nameInput.maxLength = enabled ? GUEST_MAX_LENGTH : MEMBER_MAX_LENGTH;
+            if (nameInput.value.length > nameInput.maxLength) {
+                nameInput.value = nameInput.value.slice(0, nameInput.maxLength);
+            }
+        }
+        if (nameDropdown) {
+            nameDropdown.classList.add('hidden');
+        }
+    }
+
+    if (guestToggle) {
+        guestToggle.addEventListener('click', () => {
+            setGuestMode(!isGuestMode);
+            if (nameInput) {
+                nameInput.value = '';
+                nameInput.focus();
+            }
+            statusMessage.textContent = '';
+            statusMessage.className = 'status-message';
+        });
+    }
 
     // 드롭다운 목록 렌더링 함수
     function renderDropdown(filterKeyword = '') {
-        if (!nameDropdown) return;
+        if (!nameDropdown || isGuestMode) return;
 
         const keyword = normalizeName(filterKeyword);
 
@@ -413,13 +464,13 @@ function initUserApp() {
 
     if (nameInput && nameDropdown) {
         nameInput.addEventListener('focus', () => {
-            if (currentMemberList.length > 0) {
+            if (!isGuestMode && currentMemberList.length > 0) {
                 renderDropdown(nameInput.value);
             }
         });
 
         nameInput.addEventListener('input', () => {
-            if (currentMemberList.length > 0) {
+            if (!isGuestMode && currentMemberList.length > 0) {
                 renderDropdown(nameInput.value);
             }
         });
@@ -496,20 +547,25 @@ function initUserApp() {
 
     // 배정 버튼 클릭
     sortButton.addEventListener('click', async () => {
-        const name = nameInput.value.trim();
+        const rawName = nameInput.value.trim();
 
-        if (!name) {
-            showStatusMessage('이름을 입력하거나 검색해서 선택해주세요!', 'error');
+        if (!rawName) {
+            showStatusMessage(
+                isGuestMode ? '게스트 이름을 입력해주세요!' : '이름을 입력하거나 검색해서 선택해주세요!',
+                'error'
+            );
             return;
         }
 
-        if (name.length < 2) {
+        if (rawName.length < 2) {
             showStatusMessage('이름은 최소 2글자 이상이어야 합니다.', 'error');
             return;
         }
 
-        // 명단에 있는 이름인지 사전 검증
-        if (currentMemberList.length > 0) {
+        const name = isGuestMode ? toGuestDisplayName(rawName) : rawName;
+
+        // 명단에 있는 이름인지 사전 검증 (게스트는 스킵)
+        if (!isGuestMode && currentMemberList.length > 0) {
             const matchedName = currentMemberList.find(m => normalizeName(m) === normalizeName(name));
             if (!matchedName) {
                 showStatusMessage('목록에서 본인의 이름을 선택해 주세요!', 'error');
@@ -519,7 +575,12 @@ function initUserApp() {
 
         // 이미 배정된 이름인지 1차 검증
         if (assignedNameSet.has(normalizeName(name))) {
-            showStatusMessage('이미 배정이 완료된 이름입니다!', 'error');
+            showStatusMessage(
+                isGuestMode
+                    ? '이미 배정된 게스트 이름입니다. 다른 이름(예: 홍길동2)으로 입력해 주세요!'
+                    : '이미 배정이 완료된 이름입니다!',
+                'error'
+            );
             return;
         }
 
@@ -527,6 +588,7 @@ function initUserApp() {
         if (nameDropdown) nameDropdown.classList.add('hidden');
         sortButton.disabled = true;
         nameInput.disabled = true;
+        if (guestToggle) guestToggle.disabled = true;
         statusMessage.textContent = '';
         statusMessage.className = 'status-message';
 
@@ -570,6 +632,7 @@ function initUserApp() {
                 // 버튼 다시 활성화
                 sortButton.disabled = false;
                 nameInput.disabled = false;
+                if (guestToggle) guestToggle.disabled = false;
                 hatImage.classList.remove('wobbling');
                 thinkingText.classList.add('hidden');
             }
