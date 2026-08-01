@@ -19,13 +19,14 @@ try {
 // ========================================
 
 // 조장(직책)별 고유 문양 및 색상 — 인명 대신 직책으로 두어 연도마다 재사용
+// 색상은 다크 배경에서도 구분되도록 밝게 유지
 const LEADER_EMBLEMS = {
-    '회장': { icon: '🦁', image: 'images/emblem-lim.png', color: '#c41e3a', name: '용맹' },
-    '부회장': { icon: '🦅', image: 'images/emblem-kim-k.png', color: '#0e1a40', name: '지혜' },
+    '회장': { icon: '🦁', image: 'images/emblem-lim.png', color: '#e74c3c', name: '용맹' },
+    '부회장': { icon: '🦅', image: 'images/emblem-kim-k.png', color: '#5b8def', name: '지혜' },
     '총무': { icon: '🦊', image: 'images/emblem-lee-h.png', color: '#ff6b35', name: '지략' },
-    '부총무': { icon: '🐺', image: 'images/emblem-lee-s.png', color: '#4a5568', name: '충성' },
-    '서기': { icon: '🐉', image: 'images/emblem-park.png', color: '#2d5016', name: '힘' },
-    '부서기': { icon: '🦉', image: 'images/emblem-kim-i.png', color: '#946b2d', name: '지식' },
+    '부총무': { icon: '🐺', image: 'images/emblem-lee-s.png', color: '#a0aec0', name: '충성' },
+    '서기': { icon: '🐉', image: 'images/emblem-park.png', color: '#68d391', name: '힘' },
+    '부서기': { icon: '🦉', image: 'images/emblem-kim-i.png', color: '#d4a017', name: '지식' },
     '회계': { icon: '🐯', image: 'images/emblem-jung.png', color: '#ff8c42', name: '용기' },
     '부회계': { icon: '🦌', image: 'images/emblem-woo.png', color: '#60a5fa', name: '우아함' }
 };
@@ -75,6 +76,17 @@ function getSeatTotalCount(seatMemberList) {
         return seatMemberList.length;
     }
     return 0;
+}
+
+// 조장 직책 기준 문양/색상 조회 (저장된 값이 없거나 기본값일 때도 직책으로 보정)
+function getLeaderEmblem(leaderName, team = {}) {
+    const meta = LEADER_EMBLEMS[leaderName] || {};
+    return {
+        icon: meta.icon || team.emblem || '⭐',
+        image: meta.image || team.emblemImage || '',
+        color: meta.color || team.color || '#d4af37',
+        name: meta.name || team.trait || '특별'
+    };
 }
 
 // SessionStorage 관리 (브라우저 세션 동안만 유지, 닫으면 자동 삭제)
@@ -253,14 +265,15 @@ async function assignToTeam(userName) {
             const normalizedMembers = (team.members || []).map(normalizeName);
             if (normalizedMembers.includes(normalizeName(canonicalName))) {
                 // 이미 배정된 경우 해당 조 정보 반환
+                const emblemMeta = getLeaderEmblem(team.leader, team);
                 return {
                     teamId: team.id,
                     teamName: team.name,
                     leader: team.leader,
-                    emblem: LEADER_EMBLEMS[team.leader]?.icon || '⭐',
-                    emblemImage: LEADER_EMBLEMS[team.leader]?.image || '',
-                    color: LEADER_EMBLEMS[team.leader]?.color || '#d4af37',
-                    trait: LEADER_EMBLEMS[team.leader]?.name || '특별',
+                    emblem: emblemMeta.icon,
+                    emblemImage: emblemMeta.image,
+                    color: emblemMeta.color,
+                    trait: emblemMeta.name,
                     count: team.count,
                     alreadyAssigned: true
                 };
@@ -337,15 +350,16 @@ async function assignToTeam(userName) {
         // 6. 최종 팀 정보 가져오기
         const finalSnapshot = await teamRef.once('value');
         assignedTeam = finalSnapshot.val();
+        const emblemMeta = getLeaderEmblem(assignedTeam.leader, assignedTeam);
 
         return {
             teamId: selectedTeam.id,
             teamName: assignedTeam.name,
             leader: assignedTeam.leader,
-            emblem: assignedTeam.emblem,
-            emblemImage: assignedTeam.emblemImage,
-            color: assignedTeam.color,
-            trait: assignedTeam.trait,
+            emblem: emblemMeta.icon,
+            emblemImage: emblemMeta.image,
+            color: emblemMeta.color,
+            trait: emblemMeta.name,
             count: assignedTeam.count,
             alreadyAssigned: false
         };
@@ -708,19 +722,14 @@ function updateTeamsStatus() {
         teamsList.innerHTML = activeTeams.map(([teamId, team]) => {
             const members = team.members || [];
             const count = team.count || 0;
-            const emblem = team.emblem || '⭐';
-            const emblemImage = team.emblemImage || '';
-            const color = team.color || 'var(--color-gold)';
-
-            const emblemDisplay = emblemImage ?
-                `<img src="${emblemImage}" alt="Emblem" style="width: 40px; height: 40px; object-fit: contain; margin-right: 8px;">` :
-                `<span style="font-size: 1.5rem; margin-right: 8px;">${emblem}</span>`;
+            const emblemMeta = getLeaderEmblem(team.leader, team);
+            const color = emblemMeta.color;
 
             return `
                 <div class="team-card" style="border-color: ${color}50;">
                     <div class="team-header">
                         <div class="team-name" style="color: ${color}; display: flex; align-items: center;">
-                            ${emblemDisplay}
+                            <span style="font-size: 1.5rem; margin-right: 8px;">${emblemMeta.icon}</span>
                             <span>${team.name} (조장: ${team.leader})</span>
                         </div>
                         <div class="team-count">${count}명</div>
@@ -801,7 +810,7 @@ function initAdminApp() {
                 const leaderName = input.dataset.leader;
                 const teamNumber = index + 1;
                 const teamId = `team_${Date.now()}_${teamNumber}`;
-                const emblem = LEADER_EMBLEMS[leaderName] || { icon: '⭐', image: '', color: '#d4af37', name: '특별' };
+                const emblem = getLeaderEmblem(leaderName);
 
                 updates[teamId] = {
                     name: `${teamNumber}조`,
@@ -1287,19 +1296,14 @@ function initAdminApp() {
         } else {
             teamsDetail.innerHTML = teams.sort((a, b) => a.name.localeCompare(b.name)).map(team => {
                 const members = team.members || [];
-                const emblem = team.emblem || '⭐';
-                const emblemImage = team.emblemImage || '';
-                const color = team.color || 'var(--color-gold)';
-
-                const emblemDisplay = emblemImage ?
-                    `<img src="${emblemImage}" alt="Emblem" style="width: 40px; height: 40px; object-fit: contain; margin-right: 8px;">` :
-                    `<span style="font-size: 1.5rem; margin-right: 8px;">${emblem}</span>`;
+                const emblemMeta = getLeaderEmblem(team.leader, team);
+                const color = emblemMeta.color;
 
                 return `
                     <div class="team-detail-card" style="border-color: ${color}50;">
                         <div class="team-detail-header">
                             <div class="team-detail-name" style="color: ${color}; display: flex; align-items: center;">
-                                ${emblemDisplay}
+                                <span style="font-size: 1.5rem; margin-right: 8px;">${emblemMeta.icon}</span>
                                 <span>${team.name} (조장: ${team.leader})</span>
                             </div>
                             <div class="team-detail-count">${team.count || 0}명</div>
