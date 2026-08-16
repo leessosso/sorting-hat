@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "teams": {
+      ".read": true,
+      ".write": true
+    },
+    "config": {
+      ".read": true,
+      ".write": true
+    },
+    "seats": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
